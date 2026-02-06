@@ -5,17 +5,19 @@
   <meta charset="UTF-8">
   <title>Invoice</title>
   <style>
-    @page {
-      margin: 2cm 2cm 3cm 2cm;
-    }
-
     body {
       font-family: 'Helvetica Neue', Arial, sans-serif;
       font-size: 13px;
       color: #333;
       line-height: 1.5;
       margin: 0;
-      padding: 20px;
+    }
+
+    .page {
+      width: 8.5in;
+      height: 11in;
+      padding: 0.5cm;
+      position: relative;
     }
 
     .header {
@@ -38,7 +40,14 @@
       line-height: 1.4;
     }
 
+    .customer-info {
+      line-height: 1.4;
+      position: absolute;
+      top: 6.3cm;
+    }
+
     .invoice-meta {
+      justify-content: space-between;
       text-align: right;
     }
 
@@ -57,6 +66,8 @@
       border-collapse: collapse;
       border-bottom: 1px solid #ddd;
       margin-bottom: 1.5cm;
+      position: absolute;
+      top: 9.5cm;
     }
 
     th,
@@ -108,261 +119,77 @@
 </head>
 
 <body>
-  <div class="header">
-    <div class="header-left">
-      <img class="logo" src="{{ company.logo }}" alt="Logo">
-      <div class="company-info"><strong>{{ company.name }}</strong><br>Address</div>
-    </div>
-    <div class="invoice-meta">
-      <div class="invoice-title">Invoice {{ invoice.id }}</div>
-      <div><strong>Invoice No.:</strong> {{ invoice.id }}</div>
-      <div><strong>Date:</strong>&nbsp;{{ invoice.date }}</div>
-      <div><strong>Due Date:</strong> 2025-10-24</div>
-    </div>
-  </div>
+  {% for page in pages %}
+  <section class="page">
+    <section class="header">
+      <div class="header-left">
+        <img class="logo" src="{{ invoice.logo }}" alt="Logo">
+        <address class="company-info">
+          <strong>{{ invoice.sender.name }}</strong><br>
+          {% if invoice.sender.address %}
+          {{ invoice.sender.address.line1 }}<br>
+          {% if invoice.sender.address.line2 %}
+          {{ invoice.sender.address.line2 }}<br>
+          {% endif %}
+          {{ invoice.sender.address.city }}, {{ invoice.sender.address.province_code }} {{
+          invoice.sender.address.postal_code }}<br>
+          {% endif %}
+          {% if invoice.sender.phone %}
+          {{ invoice.sender.phone }}<br>
+          {% endif %}
+          {% if invoice.sender.email %}
+          {{ invoice.sender.email }}<br>
+          {% endif %}
+        </address>
+        <address class="customer-info">
+          <strong>{{ invoice.receiver.name }}</strong><br>
+          {% if invoice.receiver.address %}
+          {{ invoice.receiver.address.line1 }}<br>
+          {% if invoice.receiver.address.line2 %}
+          {{ invoice.receiver.address.line2 }}<br>
+          {% endif %}
+          {{ invoice.receiver.address.city }}, {{ invoice.receiver.address.province_code }} {{
+          invoice.receiver.address.postal_code }}<br>
+          {% endif %}
+          {% if invoice.receiver.phone %}
+          {{ invoice.receiver.phone }}<br>
+          {% endif %}
+          {% if invoice.receiver.email %}
+          {{ invoice.receiver.email }}<br>
+          {% endif %}
+        </address>
+      </div>
+      <div class="invoice-meta">
+        <div><strong>Invoice:</strong> {{ invoice.id }}</div>
+        <div><strong>Date:</strong>&nbsp;{{ invoice.created_datetime | format_ymd }}</div>
+        <div><strong>Due Date:</strong>&nbsp;{{ invoice.net_due_datetime | format_ymd }}</div>
+      </div>
+    </section>
 
-  <div class="recipient">
-    <strong>Recipient:</strong><br>Your Client Name<br>Address
-    <br>Tax ID: Tax ID
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width:5%">#</th>
-        <th>Description</th>
-        <th style="width:10%; text-align: right;">Qty</th>
-        <th style="width:15%; text-align: right;">Unit Price</th>
-        <th style="width:15%; text-align: right;">Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>1</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Enter item name or description</td>
-        <td style="text-align: right;">1</td>
-        <td style="text-align: right;">USD 100.00</td>
-        <td style="text-align: right;">USD 100.00</td>
-      </tr>
-    </tbody>
-  </table>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:5%">No.</th>
+          <th>Description</th>
+          <th style="width:10%; text-align: right;">Qty</th>
+          <th style="width:15%; text-align: right;">Unit Price</th>
+          <th style="width:15%; text-align: right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in page %}
+        <tr>
+          <td>{{ line.sku }}</td>
+          <td>{{ line.title }}</td>
+          <td style="text-align: right;">{{ line.quantity }}</td>
+          <td style="text-align: right;">{{ line.price | pretty_price }}</td>
+          <td style="text-align: right;">{{ line.total | pretty_price }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endfor %}
 
   <div class="totals">
     <table>
@@ -395,8 +222,6 @@
       Phone: Phone<br>
       Email: Email
     </div>
-
-
   </div>
 </body>
 
