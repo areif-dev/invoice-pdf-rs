@@ -72,6 +72,28 @@ pub struct Invoice {
     paid: BigDecimal,
 }
 
+impl LineItem {
+    pub fn price(&self) -> &BigDecimal {
+        &self.price
+    }
+
+    pub fn quantity(&self) -> i32 {
+        self.quantity
+    }
+
+    pub fn title(&self) -> String {
+        self.title.to_string()
+    }
+
+    pub fn sku(&self) -> String {
+        self.sku.to_string()
+    }
+
+    pub fn total(&self) -> BigDecimal {
+        &self.price * self.quantity
+    }
+}
+
 impl Invoice {
     pub fn net_due(&self) -> BigDecimal {
         let line_item_total: BigDecimal =
