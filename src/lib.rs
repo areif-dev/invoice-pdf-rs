@@ -1,16 +1,24 @@
 pub mod error;
+pub mod invoice;
+pub mod template_env;
 
 pub use error::Error;
+pub use invoice::{
+    Address, AddressBuilder, AddressBuilderError, Invoice, InvoiceBuilder, InvoiceBuilderError,
+    LineItem, LineItemBuilder, LineItemBuilderError, Party, PartyBuilder, PartyBuilderError,
+};
 
 use error::AddContext;
 use fantoccini::{
     ClientBuilder,
-    wd::{PrintConfigurationBuilder, PrintSize},
+    wd::{PrintConfigurationBuilder, PrintMargins, PrintSize},
 };
 use serde_json::Map;
 use std::{
+    env::current_dir,
     ffi::OsStr,
     fs,
+    path::Path,
     process::{Child, Command},
     thread::sleep,
     time::Duration,
@@ -39,16 +47,32 @@ pub async fn print() -> Result<(), crate::Error> {
         .map_err(crate::Error::from)
         .add_context("connecting to client")
         .add_context("printing pdf")?;
+    let path = current_dir()
+        .map_err(crate::Error::from)
+        .add_context("fetching current working dir to find invoice template")
+        .add_context("printing pdf")?
+        .join("invoice.html");
+    let path = path
+        .to_str()
+        .ok_or(crate::Error::from(
+            "fetching current working dir to find invoice template".to_string(),
+        ))
+        .add_context("printing pdf")?;
     client
-        .goto("https://ajreifsnyder.com")
+        .goto(&format!("file://{path}"))
         .await
         .map_err(crate::Error::from)
         .add_context("navigating to address")
         .add_context("printing pdf")?;
-    sleep(Duration::from_secs(1));
     let bytes = client
         .print(
             PrintConfigurationBuilder::default()
+                .margins(PrintMargins {
+                    top: 0.0,
+                    left: 0.0,
+                    right: 0.0,
+                    bottom: 0.0,
+                })
                 .size(PrintSize::US_LETTER)
                 .build()
                 .map_err(crate::Error::from)
