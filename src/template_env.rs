@@ -13,7 +13,6 @@ pub fn format_ymd(raw: &str) -> String {
 }
 
 pub fn pretty_price(raw: &str) -> String {
-    let raw: String = raw.chars().filter(|c| c.is_digit(10)).collect();
     let Ok(dec) = BigDecimal::from_str(&raw) else {
         return String::from("NaN");
     };
