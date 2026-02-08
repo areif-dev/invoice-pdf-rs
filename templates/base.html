@@ -16,14 +16,11 @@
     .page {
       width: 8.5in;
       height: 11in;
-      padding: 0.5cm;
-      position: relative;
     }
 
     .header {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 1cm;
     }
 
     .header-left {
@@ -31,34 +28,14 @@
     }
 
     .logo {
-      height: 50px;
+      height: 2.3cm;
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: .2cm;
     }
 
-    .company-info {
+    .address {
       line-height: 1.4;
-    }
-
-    .customer-info {
-      line-height: 1.4;
-      position: absolute;
-      top: 6.3cm;
-    }
-
-    .invoice-meta {
-      justify-content: space-between;
-      text-align: right;
-    }
-
-    .invoice-title {
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
-
-    .recipient {
-      margin-bottom: 1cm;
+      height: 3.5cm;
     }
 
     table {
@@ -66,7 +43,6 @@
       border-collapse: collapse;
       border-bottom: 1px solid #ddd;
       margin-bottom: 1.5cm;
-      position: absolute;
       top: 9.5cm;
     }
 
@@ -93,38 +69,21 @@
       padding: 4px 0;
     }
 
-    .bottom-container {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 1.5cm;
-      margin-bottom: 1.5cm;
-      page-break-inside: avoid;
-    }
-
-    .sender-details,
-    .bank-info {
-      width: 48%;
-    }
-
-    .bank-info {
-      text-align: right;
-    }
-
-    .notes {
-      clear: both;
-      margin-bottom: 1.5cm;
-      text-align: center;
+    .invoice-meta td {
+      line-height: 1.3;
+      vertical-align: top;
+      padding-top: 0;
+      border: none;
     }
   </style>
 </head>
 
 <body>
-  {% for page in pages %}
   <section class="page">
     <section class="header">
       <div class="header-left">
         <img class="logo" src="{{ invoice.logo }}" alt="Logo">
-        <address class="company-info">
+        <address class="address">
           <strong>{{ invoice.sender.name }}</strong><br>
           {% if invoice.sender.address %}
           {{ invoice.sender.address.line1 }}<br>
@@ -141,7 +100,7 @@
           {{ invoice.sender.email }}<br>
           {% endif %}
         </address>
-        <address class="customer-info">
+        <address class="address">
           <strong>{{ invoice.receiver.name }}</strong><br>
           {% if invoice.receiver.address %}
           {{ invoice.receiver.address.line1 }}<br>
@@ -160,16 +119,39 @@
         </address>
       </div>
       <div class="invoice-meta">
-        <div><strong>Invoice:</strong> {{ invoice.id }}</div>
-        <div><strong>Date:</strong>&nbsp;{{ invoice.created_datetime | format_ymd }}</div>
-        <div><strong>Due Date:</strong>&nbsp;{{ invoice.net_due_datetime | format_ymd }}</div>
+        <table style="border: none;">
+          <tr>
+            <td><strong>Invoice:</strong></td>
+            <td>{{ invoice.id }}</td>
+          </tr>
+          <tr>
+            <td><strong>Date:</strong></td>
+            <td>{{ invoice.created_datetime | format_ymd }}</td>
+          </tr>
+          <tr>
+            <td><strong>Due Date:</strong></td>
+            <td>{{ invoice.net_due_datetime | format_ymd }}</td>
+          </tr>
+          {% if invoice.acct_id %}
+          <tr>
+            <td><strong>Account ID:</strong></td>
+            <td>{{ invoice.acct_id }}</td>
+          </tr>
+          {% endif %}
+          {% if invoice.purchase_order %}
+          <tr>
+            <td><strong>Purchase Order:</strong></td>
+            <td>{{ invoice.purchase_order }}</td>
+          </tr>
+          {% endif %}
+        </table>
       </div>
     </section>
 
     <table>
       <thead>
         <tr>
-          <th style="width:5%">No.</th>
+          <th style="width:10%">No.</th>
           <th>Description</th>
           <th style="width:10%; text-align: right;">Qty</th>
           <th style="width:15%; text-align: right;">Unit Price</th>
@@ -177,7 +159,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for line in page %}
+        {% for line in lines %}
         <tr>
           <td>{{ line.sku }}</td>
           <td>{{ line.title }}</td>
@@ -188,41 +170,21 @@
         {% endfor %}
       </tbody>
     </table>
-  </section>
-  {% endfor %}
-
-  <div class="totals">
-    <table>
-      <tr>
-        <td>Subtotal:</td>
-        <td style="text-align:right;">USD 200.00</td>
-      </tr>
-      <tr>
-        <td>VAT (19%):</td>
-        <td style="text-align:right;">USD 38.00</td>
-      </tr>
+    <table class="totals">
       <tr>
         <td><strong>Total:</strong></td>
-        <td style="text-align:right;"><strong>USD 238.00</strong></td>
+        <td style="text-align:right;">{{ invoice.total | pretty_price }}</td>
+      </tr>
+      <tr>
+        <td><strong>Paid:</strong></td>
+        <td style="text-align:right;">{{ invoice.paid | pretty_price }}</td>
+      </tr>
+      <tr>
+        <td><strong>Due:</strong></td>
+        <td style="text-align:right;">{{ invoice.due | pretty_price }}</td>
       </tr>
     </table>
-  </div>
-
-
-  <div class="notes">
-    It was a pleasure doing business with you.
-  </div>
-
-
-  <div class="bottom-container">
-    <div class="sender-details">
-      <strong>Company Name</strong><br>
-      Address<br><br>
-      Tax ID: Tax ID<br>
-      Phone: Phone<br>
-      Email: Email
-    </div>
-  </div>
+  </section>
 </body>
 
 </html>
