@@ -68,10 +68,10 @@ pub async fn print() -> Result<(), crate::Error> {
         .print(
             PrintConfigurationBuilder::default()
                 .margins(PrintMargins {
-                    top: 0.0,
-                    left: 0.0,
-                    right: 0.0,
-                    bottom: 0.0,
+                    top: 0.5,
+                    left: 1.5,
+                    right: 1.5,
+                    bottom: 0.5,
                 })
                 .size(PrintSize::US_LETTER)
                 .build()
