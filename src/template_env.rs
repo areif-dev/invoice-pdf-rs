@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
 use minijinja::context;
@@ -33,22 +33,8 @@ pub fn render_template(
     invoice: Invoice,
 ) -> Result<String, minijinja::Error> {
     let template = env.get_template("base.html")?;
-    let lines: Vec<_> = invoice
-        .line_items()
-        .iter()
-        .map(|line| {
-            HashMap::from([
-                ("price", line.price().to_string()),
-                ("title", line.title()),
-                ("sku", line.sku()),
-                ("quantity", line.quantity().to_string()),
-                ("total", line.total().to_string()),
-            ])
-        })
-        .collect();
-    let pages: Vec<_> = lines.chunks(21).collect();
     template.render(context! {
-        pages => pages,
+        lines => invoice.line_items(),
         invoice => invoice
     })
 }
