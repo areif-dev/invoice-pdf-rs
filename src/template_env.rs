@@ -1,3 +1,11 @@
+//! Utilities for setting up and using the HTML template environment.
+//!
+//! This module provides template filters and helpers used when rendering
+//! invoices to HTML. It registers custom filters for formatting RFC3339
+//! datetimes and decimal prices, exposes a pre-defined base template, and
+//! offers a convenience function to render an Invoice into HTML using the
+//! minijinja template environment.
+//!
 use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
@@ -5,6 +13,24 @@ use minijinja::context;
 
 use crate::invoice::Invoice;
 
+/// A custom filter used in the Invoice template. Parses an RFC3339 datetime string and
+/// returns only the year-month-day portion. If the input is not an RFC3339 string, then the
+/// returned value will be "N/A"
+///
+/// # Arguments
+/// * `raw` - A string slice containing an RFC3339 datetime (e.g. "2024-01-02T15:04:05Z"). If the
+/// string is not an RFC3339 string, then the value returned will be "N/A"
+///
+/// # Returns
+/// A string with the date formatted as YYYY-MM-DD. If parsing fails, returns "N/A".
+///
+/// # Example
+/// ```rust
+/// use invoice_pdf::template_env;
+///
+/// let s = "2024-01-02T15:04:05Z";
+/// assert_eq!(&template_env::format_ymd(s), "2024-01-02");
+/// ```
 pub fn format_ymd(raw: &str) -> String {
     let Ok(datetime) = chrono::DateTime::parse_from_rfc3339(raw) else {
         return String::from("N/A");
@@ -12,6 +38,23 @@ pub fn format_ymd(raw: &str) -> String {
     datetime.format("%Y-%m-%d").to_string()
 }
 
+/// A custom filter to be used in the Invoice template. Format a decimal-like string as a
+/// US-style dollar amount with two decimals.
+///
+/// # Arguments
+/// * `raw` - A string slice containing a decimal representation (e.g. "12.5").
+///
+/// # Returns
+/// A string with a leading $ and exactly two fractional digits (e.g. "$12.50").
+/// If parsing fails, returns "NaN".
+///
+/// # Example
+/// ```rust
+/// use invoice_pdf::template_env;
+///
+/// let s = "12.5";
+/// assert_eq!(&template_env::pretty_price(s), "$12.50");
+/// ```
 pub fn pretty_price(raw: &str) -> String {
     let Ok(dec) = BigDecimal::from_str(&raw) else {
         return String::from("NaN");
@@ -19,6 +62,23 @@ pub fn pretty_price(raw: &str) -> String {
     format!("${:.2}", dec)
 }
 
+/// Create and configure a minijinja template environment.
+///
+/// Registers the [`format_ymd`] and [`pretty_price`] filters and loads the
+/// built-in base HTML template.
+///
+/// # Returns
+/// * [`minijinja::Environment`] with the configured environment on success.
+///
+/// # Errors
+/// * [`minijinja::Error`] if loading the built-in template fails.
+///
+/// # Example
+/// ```rust
+/// use invoice_pdf::template_env;
+///
+/// let env = template_env::setup_template_env().expect("setup env");
+/// ```
 pub fn setup_template_env() -> Result<minijinja::Environment<'static>, minijinja::Error> {
     let mut env = minijinja::Environment::new();
     env.add_filter("format_ymd", format_ymd);
@@ -27,6 +87,55 @@ pub fn setup_template_env() -> Result<minijinja::Environment<'static>, minijinja
     Ok(env)
 }
 
+/// Render the Invoice using the provided [`minijinja`] environment and the
+/// embedded base template.
+///
+/// # Arguments
+/// * `env` - A reference to a configured [`minijinja::Environment`].
+/// * `invoice` - The [`Invoice`] to render. Ownership is taken because templates
+///   may borrow or clone data from the invoice as needed by [`minijinja`].
+///
+/// # Returns
+/// * [`String`] containing the rendered HTML on success.
+///
+/// # Errors
+/// * [`minijinja::Error`] if template retrieval or rendering fails.
+///
+/// # Example
+/// ```rust
+/// use invoice_pdf::{template_env, InvoiceBuilder, AddressBuilder, PartyBuilder};
+///
+/// let env = template_env::setup_template_env().unwrap();
+/// let inv = InvoiceBuilder::default()
+///     .id("1")
+///     .logo("./logo.png")
+///     .receiver(
+///         PartyBuilder::default()
+///             .name("A")
+///             .address(
+///                 AddressBuilder::default()
+///                 .line1("1 street st")
+///                 .city("city")
+///                 .province_code("PR")
+///                 .postal_code("Post")
+///                 .build().unwrap()
+///             )
+///             .build().unwrap())
+///     .sender(
+///         PartyBuilder::default()
+///             .name("B")
+///             .address(
+///                 AddressBuilder::default()
+///                 .line1("1 street st")
+///                 .city("city")
+///                 .province_code("PR")
+///                 .postal_code("Post")
+///                 .build().unwrap()
+///             )
+///         .build().unwrap())
+///     .build().unwrap();
+/// let html = template_env::render_template(&env, inv).unwrap();
+/// ```
 pub fn render_template(
     env: &minijinja::Environment<'static>,
     invoice: Invoice,
@@ -38,6 +147,8 @@ pub fn render_template(
     })
 }
 
+// The embedded html template used to render the PDF content. This string is directly copied from
+// templates/base.html
 const BASE: &'static str = r#"<!DOCTYPE html>
 <html lang="en">
 

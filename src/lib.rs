@@ -14,23 +14,7 @@ use fantoccini::{
     wd::{PrintConfigurationBuilder, PrintMargins, PrintSize},
 };
 use serde_json::Map;
-use std::{
-    env::current_dir,
-    ffi::OsStr,
-    fs,
-    path::Path,
-    process::{Child, Command},
-    thread::sleep,
-    time::Duration,
-};
-
-pub fn start_driver(driver_path: impl AsRef<OsStr>) -> Result<Child, Error> {
-    Ok(Command::new(&driver_path)
-        .args(["--port=4444"])
-        .spawn()
-        .map_err(crate::Error::from)
-        .add_context("Attempting to start webdriver")?)
-}
+use std::{env::current_dir, fs};
 
 pub async fn print() -> Result<(), crate::Error> {
     let mut caps = Map::new();

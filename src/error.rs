@@ -1,10 +1,27 @@
+//! Error types and helpers used across the application.
+//!
+//! This module defines a simple error wrapper that captures an underlying
+//! error kind plus a stack of human-friendly context messages. The context
+//! can be appended as errors propagate upward, allowing the final error
+//! message presented to the user to contain useful, ordered diagnostic
+//! information.
+
 use std::fmt::{Debug, Display};
 
+/// Generic error type carrying an inner kind and a stack of context messages.
+///
+/// Context messages are intended to be added at each layer where the error is
+/// propagated so the final message is informative to the user or operator.
+#[warn(dead_code)]
 pub struct Error {
-    kind: ErrorKind,
+    pub kind: ErrorKind,
     context: Vec<String>,
 }
 
+/// Enumeration of concrete error kinds wrapped by [`Error`].
+///
+/// This enum stores the original error values for potential programmatic use
+/// while `Error` itself keeps a human-readable context stack for display.
 pub enum ErrorKind {
     Io(std::io::Error),
     FantocciniNewSession(fantoccini::error::NewSessionError),
@@ -13,6 +30,7 @@ pub enum ErrorKind {
     Other(String),
 }
 
+/// Trait providing a convenience method to add context to [`Result<T, Error>`].
 pub trait AddContext<T> {
     fn add_context(self, ctx: &str) -> Result<T, Error>;
 }
