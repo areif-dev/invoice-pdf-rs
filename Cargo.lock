@@ -657,7 +657,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "invoice-pdf-rs"
+name = "invoice-pdf"
 version = "0.1.0"
 dependencies = [
  "bigdecimal",
