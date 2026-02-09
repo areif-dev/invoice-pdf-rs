@@ -23,7 +23,7 @@ pub fn setup_template_env() -> Result<minijinja::Environment<'static>, minijinja
     let mut env = minijinja::Environment::new();
     env.add_filter("format_ymd", format_ymd);
     env.add_filter("pretty_price", pretty_price);
-    env.set_loader(minijinja::path_loader("templates"));
+    env.add_template("base.html", BASE)?;
     Ok(env)
 }
 
@@ -37,3 +37,195 @@ pub fn render_template(
         invoice => invoice
     })
 }
+
+const BASE: &'static str = r#"<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Invoice</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 13px;
+      color: #333;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .page {
+      width: 8.5in;
+      height: 11in;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      width: 60%;
+    }
+
+    .logo {
+      height: 2.3cm;
+      display: block;
+      margin-bottom: .2cm;
+    }
+
+    .address {
+      line-height: 1.4;
+      height: 3.5cm;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 1.5cm;
+      top: 9.5cm;
+    }
+
+    th,
+    td {
+      border-top: 1px solid #ddd;
+      padding: 6px 4px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+
+    .totals {
+      width: 40%;
+      float: right;
+      margin-bottom: 0.5cm;
+    }
+
+    .totals td {
+      padding: 4px 0;
+    }
+
+    .invoice-meta td {
+      line-height: 1.3;
+      vertical-align: top;
+      padding-top: 0;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+  <section class="page">
+    <section class="header">
+      <div class="header-left">
+        <img class="logo" src="{{ invoice.logo }}" alt="Logo">
+        <address class="address">
+          <strong>{{ invoice.sender.name }}</strong><br>
+          {% if invoice.sender.address %}
+          {{ invoice.sender.address.line1 }}<br>
+          {% if invoice.sender.address.line2 %}
+          {{ invoice.sender.address.line2 }}<br>
+          {% endif %}
+          {{ invoice.sender.address.city }}, {{ invoice.sender.address.province_code }} {{
+          invoice.sender.address.postal_code }}<br>
+          {% endif %}
+          {% if invoice.sender.phone %}
+          {{ invoice.sender.phone }}<br>
+          {% endif %}
+          {% if invoice.sender.email %}
+          {{ invoice.sender.email }}<br>
+          {% endif %}
+        </address>
+        <address class="address">
+          <strong>{{ invoice.receiver.name }}</strong><br>
+          {% if invoice.receiver.address %}
+          {{ invoice.receiver.address.line1 }}<br>
+          {% if invoice.receiver.address.line2 %}
+          {{ invoice.receiver.address.line2 }}<br>
+          {% endif %}
+          {{ invoice.receiver.address.city }}, {{ invoice.receiver.address.province_code }} {{
+          invoice.receiver.address.postal_code }}<br>
+          {% endif %}
+          {% if invoice.receiver.phone %}
+          {{ invoice.receiver.phone }}<br>
+          {% endif %}
+          {% if invoice.receiver.email %}
+          {{ invoice.receiver.email }}<br>
+          {% endif %}
+        </address>
+      </div>
+      <div class="invoice-meta">
+        <table style="border: none;">
+          <tr>
+            <td><strong>Invoice:</strong></td>
+            <td>{{ invoice.id }}</td>
+          </tr>
+          <tr>
+            <td><strong>Date:</strong></td>
+            <td>{{ invoice.created_datetime | format_ymd }}</td>
+          </tr>
+          <tr>
+            <td><strong>Due Date:</strong></td>
+            <td>{{ invoice.net_due_datetime | format_ymd }}</td>
+          </tr>
+          {% if invoice.acct_id %}
+          <tr>
+            <td><strong>Account ID:</strong></td>
+            <td>{{ invoice.acct_id }}</td>
+          </tr>
+          {% endif %}
+          {% if invoice.purchase_order %}
+          <tr>
+            <td><strong>Purchase Order:</strong></td>
+            <td>{{ invoice.purchase_order }}</td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+    </section>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:10%">No.</th>
+          <th>Description</th>
+          <th style="width:10%; text-align: right;">Qty</th>
+          <th style="width:15%; text-align: right;">Unit Price</th>
+          <th style="width:15%; text-align: right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in lines %}
+        <tr>
+          <td>{{ line.sku }}</td>
+          <td>{{ line.title }}</td>
+          <td style="text-align: right;">{{ line.quantity }}</td>
+          <td style="text-align: right;">{{ line.price | pretty_price }}</td>
+          <td style="text-align: right;">{{ line.total | pretty_price }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <table class="totals">
+      <tr>
+        <td><strong>Total:</strong></td>
+        <td style="text-align:right;">{{ invoice.total | pretty_price }}</td>
+      </tr>
+      <tr>
+        <td><strong>Paid:</strong></td>
+        <td style="text-align:right;">{{ invoice.paid | pretty_price }}</td>
+      </tr>
+      <tr>
+        <td><strong>Due:</strong></td>
+        <td style="text-align:right;">{{ invoice.due | pretty_price }}</td>
+      </tr>
+    </table>
+  </section>
+</body>
+
+</html>
+"#;
