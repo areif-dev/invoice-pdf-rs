@@ -660,6 +660,7 @@ dependencies = [
 name = "invoice-pdf"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "bigdecimal",
  "chrono",
  "derive_builder",
