@@ -51,6 +51,7 @@ pub struct Party {
     phone: Option<String>,
     #[builder(default)]
     email: Option<String>,
+    #[builder(default)]
     address: Option<Address>,
 }
 
@@ -182,14 +183,6 @@ impl Invoice {
     ///     .receiver(
     ///         PartyBuilder::default()
     ///             .name("A")
-    ///             .address(
-    ///                 AddressBuilder::default()
-    ///                 .line1("1 street st")
-    ///                 .city("city")
-    ///                 .province_code("PR")
-    ///                 .postal_code("Post")
-    ///                 .build().unwrap()
-    ///             )
     ///             .build().unwrap())
     ///     .sender(
     ///         PartyBuilder::default()
@@ -316,9 +309,7 @@ impl InvoiceBuilder {
         let sender = self
             .sender
             .ok_or(InvoiceBuilderError::UninitializedField("sender"))?;
-        let logo = self
-            .logo
-            .ok_or(InvoiceBuilderError::UninitializedField("logo"))?;
+        let logo = self.logo.unwrap_or(None);
         let line_items = self.line_items.unwrap_or(Vec::new());
         let paid = self.paid.unwrap_or(BigDecimal::from(0));
         let acct_id = self.acct_id.unwrap_or(None);
@@ -340,5 +331,250 @@ impl InvoiceBuilder {
             acct_id,
             purchase_order,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bigdecimal::BigDecimal;
+    use chrono::{DateTime, FixedOffset, Local, TimeZone, Utc};
+    use serde_json::json;
+    use std::path::PathBuf;
+    use std::str::FromStr;
+
+    // Helper to create a minimal valid Address using the builder
+    fn make_address() -> Address {
+        AddressBuilder::default()
+            .line1("1 street st")
+            .city("City")
+            .province_code("PR")
+            .postal_code("POST")
+            .build()
+            .unwrap()
+    }
+
+    // Helper to create a minimal valid Party using the builder
+    fn make_party(name: &str) -> Party {
+        PartyBuilder::default().name(name).build().unwrap()
+    }
+
+    #[test]
+    fn serialize_bigdecimal() {
+        #[derive(Serialize)]
+        struct Wrap<'a> {
+            #[serde(serialize_with = "super::serialize_bigdecimal")]
+            v: &'a bigdecimal::BigDecimal,
+        }
+
+        let bd = bigdecimal::BigDecimal::from_str("12.34").unwrap();
+        let j = serde_json::to_value(Wrap { v: &bd }).unwrap();
+        assert_eq!(j.get("v").and_then(|v| v.as_str()), Some("12.34"));
+    }
+
+    #[test]
+    fn test_serialize_datetime() {
+        #[derive(Serialize)]
+        struct Wrap {
+            #[serde(serialize_with = "super::serialize_datetime")]
+            dt: chrono::DateTime<chrono::FixedOffset>,
+        }
+
+        let dt = chrono::Utc
+            .with_ymd_and_hms(2026, 02, 09, 12, 00, 00)
+            .unwrap()
+            .into();
+        let j = serde_json::to_value(Wrap { dt }).unwrap();
+        let s = j.get("dt").and_then(|v| v.as_str()).unwrap();
+        assert_eq!("2026-02-09T12:00:00+00:00", s);
+    }
+
+    #[test]
+    fn line_item_builder_success_and_accessors() {
+        let price = BigDecimal::from_str("9.50").unwrap();
+        let item = LineItemBuilder::default()
+            .sku("ABC123")
+            .title("Gadget")
+            .quantity(2)
+            .price(price.clone())
+            .build()
+            .unwrap();
+
+        // Check accessors
+        assert_eq!(item.quantity(), 2);
+        assert_eq!(&item.title(), "Gadget");
+        assert_eq!(&item.sku(), "ABC123");
+        assert_eq!(item.price(), &price);
+        assert_eq!(item.total(), &BigDecimal::from(19));
+    }
+
+    #[test]
+    fn line_item_builder_missing_required_fields_fails() {
+        // Missing price
+        let _ = LineItemBuilder::default()
+            .sku("X")
+            .title("Y")
+            .quantity(1)
+            .build()
+            .unwrap_err();
+
+        // Missing quantity
+        let _ = LineItemBuilder::default()
+            .sku("X")
+            .title("Y")
+            .price(BigDecimal::from(1))
+            .build()
+            .unwrap_err();
+
+        // Missing sku
+        let _ = LineItemBuilder::default()
+            .title("Y")
+            .quantity(1)
+            .price(BigDecimal::from(1))
+            .build()
+            .unwrap_err();
+
+        // Missing title
+        let _ = LineItemBuilder::default()
+            .sku("X")
+            .quantity(1)
+            .price(BigDecimal::from(1))
+            .build()
+            .unwrap_err();
+    }
+
+    #[test]
+    fn minimal_party_builder_success() {
+        // Party with optional phone/email omitted
+        let party = PartyBuilder::default().name("Alice").build().unwrap();
+        assert_eq!(party.name, "Alice".to_string());
+        assert!(party.phone.is_none());
+        assert!(party.email.is_none());
+        assert!(party.address.is_none());
+    }
+
+    #[test]
+    fn party_builder_missing_required_name_fails() {
+        let _ = PartyBuilder::default().build().unwrap_err();
+    }
+
+    #[test]
+    fn address_builder_missing_required_fields_fails() {
+        // Missing line1
+        let _ = AddressBuilder::default()
+            .city("C")
+            .province_code("P")
+            .postal_code("Z")
+            .build()
+            .unwrap_err();
+
+        // Missing city
+        let _ = AddressBuilder::default()
+            .line1("L")
+            .province_code("P")
+            .postal_code("Z")
+            .build()
+            .unwrap_err();
+
+        // Missing province_code
+        let _ = AddressBuilder::default()
+            .line1("L")
+            .city("C")
+            .postal_code("Z")
+            .build()
+            .unwrap_err();
+
+        // Missing postal_code
+        let _ = AddressBuilder::default()
+            .line1("L")
+            .city("C")
+            .province_code("P")
+            .build()
+            .unwrap_err();
+    }
+
+    #[test]
+    fn invoice_builder_success_and_computations() {
+        // create two line items
+        let item1 = LineItemBuilder::default()
+            .sku("A")
+            .title("Item A")
+            .quantity(1)
+            .price(BigDecimal::from_str("10.00").unwrap())
+            .build()
+            .unwrap();
+
+        let item2 = LineItemBuilder::default()
+            .sku("B")
+            .title("Item B")
+            .quantity(3)
+            .price(BigDecimal::from_str("2.50").unwrap())
+            .build()
+            .unwrap();
+
+        // create invoice with some paid amount and logo path
+        let paid = BigDecimal::from_str("5.00").unwrap();
+        let logo = PathBuf::from("./logo.png");
+
+        let inv = InvoiceBuilder::default()
+            .id("inv-1")
+            // intentionally omit created_datetime and net_due_datetime to use defaults
+            .receiver(make_party("Receiver"))
+            .sender(make_party("Sender"))
+            .logo(logo.clone())
+            .add_line(item1)
+            .add_line(item2)
+            .paid(paid.clone())
+            .build()
+            .unwrap();
+
+        // total = 1*10.00 + 3*2.50 = 10.00 + 7.50 = 17.50
+        let expected_total = BigDecimal::from_str("17.50").unwrap();
+        assert_eq!(inv.total, expected_total);
+
+        // due = total - paid = 12.50
+        let expected_due = &expected_total - &paid;
+        assert_eq!(inv.due, expected_due);
+
+        // net_due() should compute same value
+        assert_eq!(inv.net_due(), expected_due);
+
+        // created_datetime and net_due_datetime should be present and set to today in the local
+        // timezone by default
+        let expected_date = chrono::Local::now();
+        let created = inv.created_datetime;
+        let due = inv.net_due_datetime;
+        assert_eq!(expected_date.date_naive(), created.date_naive());
+        assert_eq!(expected_date.date_naive(), due.date_naive());
+
+        // line_items accessor
+        assert_eq!(inv.line_items().len(), 2);
+    }
+
+    #[test]
+    fn invoice_builder_missing_required_fields_fails() {
+        // missing id
+        let _ = InvoiceBuilder::default()
+            .receiver(make_party("R"))
+            .sender(make_party("S"))
+            .logo(PathBuf::from("./logo.png"))
+            .build()
+            .unwrap_err();
+
+        // missing receiver
+        let _ = InvoiceBuilder::default()
+            .id("1")
+            .sender(make_party("S"))
+            .logo(PathBuf::from("./logo.png"))
+            .build()
+            .unwrap_err();
+
+        // missing sender
+        let _ = InvoiceBuilder::default()
+            .id("1")
+            .receiver(make_party("R"))
+            .logo(PathBuf::from("./logo.png"))
+            .build()
+            .unwrap_err();
     }
 }

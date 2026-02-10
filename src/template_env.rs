@@ -92,8 +92,7 @@ pub fn setup_template_env() -> Result<minijinja::Environment<'static>, minijinja
 ///
 /// # Arguments
 /// * `env` - A reference to a configured [`minijinja::Environment`].
-/// * `invoice` - The [`Invoice`] to render. Ownership is taken because templates
-///   may borrow or clone data from the invoice as needed by [`minijinja`].
+/// * `invoice` - The [`Invoice`] to render
 ///
 /// # Returns
 /// * [`String`] containing the rendered HTML on success.
@@ -134,11 +133,11 @@ pub fn setup_template_env() -> Result<minijinja::Environment<'static>, minijinja
 ///             )
 ///         .build().unwrap())
 ///     .build().unwrap();
-/// let html = template_env::render_template(&env, inv).unwrap();
+/// let html = template_env::render_template(&env, &inv).unwrap();
 /// ```
 pub fn render_template(
     env: &minijinja::Environment<'static>,
-    invoice: Invoice,
+    invoice: &Invoice,
 ) -> Result<String, minijinja::Error> {
     let template = env.get_template("base.html")?;
     template.render(context! {
@@ -340,3 +339,57 @@ const BASE: &'static str = r#"<!DOCTYPE html>
 
 </html>
 "#;
+
+#[cfg(test)]
+mod tests {
+    use chrono::TimeZone;
+
+    use crate::{InvoiceBuilder, LineItemBuilder, PartyBuilder};
+
+    use super::*;
+
+    #[test]
+    fn test_format_ymd() {
+        let good = chrono::Utc
+            .with_ymd_and_hms(2026, 02, 09, 12, 00, 00)
+            .unwrap();
+        assert_eq!(&format_ymd(&good.to_rfc3339()), "2026-02-09");
+
+        let bad = "REEE";
+        assert_eq!(&format_ymd(bad), "N/A");
+    }
+
+    #[test]
+    fn test_pretty_print() {
+        let good = BigDecimal::from_str("19.99").unwrap();
+        assert_eq!(&pretty_price(&good.to_string()), "$19.99");
+        assert_eq!(&pretty_price("reee"), "NaN");
+    }
+
+    #[test]
+    fn test_render_template() {
+        let inv = InvoiceBuilder::default()
+            .id("test id")
+            .sender(PartyBuilder::default().name("sender").build().unwrap())
+            .receiver(PartyBuilder::default().name("receiver").build().unwrap())
+            .add_line(
+                LineItemBuilder::default()
+                    .sku("test")
+                    .quantity(1)
+                    .price(10)
+                    .title("this is a test")
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap();
+        let env = setup_template_env().unwrap();
+        let render = render_template(&env, &inv).unwrap();
+        assert!(render.starts_with("<!DOCTYPE html>"));
+        assert!(render.contains("<td>test id</td>"));
+        assert!(render.contains("<strong>sender</strong>"));
+        assert!(render.contains("<strong>receiver</strong>"));
+        assert!(render.contains("<td>test</td>"));
+        assert!(render.contains("<td>this is a test</td>"));
+    }
+}

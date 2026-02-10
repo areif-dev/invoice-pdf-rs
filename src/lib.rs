@@ -75,5 +75,25 @@ pub async fn print() -> Result<(), crate::Error> {
 
 #[cfg(test)]
 mod tests {
+    use std::{process::Command, thread::sleep, time::Duration};
+
     use super::*;
+
+    #[tokio::test]
+    async fn test_generate_pdf() {
+        let mut c = Command::new("chromedriver")
+            .arg("--port=4444")
+            .spawn()
+            .unwrap();
+        sleep(Duration::from_secs(1));
+        let inv = InvoiceBuilder::default()
+            .id("test-inv")
+            .sender(PartyBuilder::default().name("sender").build().unwrap())
+            .receiver(PartyBuilder::default().name("receiver").build().unwrap())
+            .build()
+            .unwrap();
+        let v = generate_pdf(&inv).await.unwrap();
+        assert!(v.len() > 0);
+        c.kill().unwrap();
+    }
 }
