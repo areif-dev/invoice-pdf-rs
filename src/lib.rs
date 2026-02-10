@@ -44,6 +44,7 @@ pub mod error;
 pub mod invoice;
 pub mod template_env;
 
+use base64::{Engine, engine::general_purpose};
 pub use error::Error;
 pub use invoice::{
     Address, AddressBuilder, AddressBuilderError, Invoice, InvoiceBuilder, InvoiceBuilderError,
@@ -135,25 +136,24 @@ pub async fn generate_pdf(invoice: &Invoice) -> Result<Vec<u8>, crate::Error> {
         .await
         .map_err(crate::Error::from)
         .add_context("connecting to client")
-        .add_context("printing pdf")?;
-    let path = current_dir()
+        .add_context("generating pdf")?;
+    let template_env = setup_template_env()
         .map_err(crate::Error::from)
-        .add_context("fetching current working dir to find invoice template")
-        .add_context("printing pdf")?
-        .join("invoice.html");
-    let path = path
-        .to_str()
-        .ok_or(crate::Error::from(
-            "fetching current working dir to find invoice template".to_string(),
-        ))
-        .add_context("printing pdf")?;
+        .add_context("setting up templating environment")
+        .add_context("generating pdf")?;
+    let render = render_template(&template_env, invoice)
+        .map_err(crate::Error::from)
+        .add_context("rendering html template")
+        .add_context("generating pdf")?;
+    let encoded = general_purpose::STANDARD.encode(render.as_bytes());
+    let data_url = format!("data:text/html;base64,{encoded}");
     client
-        .goto(&format!("file://{path}"))
+        .goto(&data_url)
         .await
         .map_err(crate::Error::from)
         .add_context("navigating to address")
         .add_context("printing pdf")?;
-    let bytes = client
+    Ok(client
         .print(
             PrintConfigurationBuilder::default()
                 .margins(PrintMargins {
@@ -170,12 +170,7 @@ pub async fn generate_pdf(invoice: &Invoice) -> Result<Vec<u8>, crate::Error> {
         )
         .await
         .map_err(crate::Error::from)
-        .add_context("printing pdf")?;
-    fs::write("test.pdf", &bytes)
-        .map_err(crate::Error::from)
-        .add_context("saving file")
-        .add_context("printing pdf")?;
-    Ok(())
+        .add_context("printing pdf")?)
 }
 
 #[cfg(test)]
