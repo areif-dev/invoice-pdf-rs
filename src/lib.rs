@@ -53,13 +53,14 @@ pub use invoice::{
 
 use error::AddContext;
 use fantoccini::{
-    ClientBuilder,
+    Client, ClientBuilder,
     wd::{PrintConfigurationBuilder, PrintMargins, PrintSize},
 };
 use serde_json::Map;
-use std::{env::current_dir, fs};
 
-pub async fn print() -> Result<(), crate::Error> {
+use crate::template_env::{render_template, setup_template_env};
+
+async fn connect_to_client() -> Result<Client, fantoccini::error::NewSessionError> {
     let mut caps = Map::new();
     caps.insert(
         "goog:chromeOptions".to_string(),
@@ -67,7 +68,7 @@ pub async fn print() -> Result<(), crate::Error> {
             "args": ["--headless"]
         }),
     );
-    let client = ClientBuilder::native()
+    ClientBuilder::native()
         .capabilities(caps)
         .connect("http://localhost:4444")
         .await
