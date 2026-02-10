@@ -44,6 +44,13 @@ pub mod error;
 pub mod invoice;
 pub mod template_env;
 
+use std::{
+    net::TcpListener,
+    process::{Child, Command, Stdio},
+    thread,
+    time::Duration,
+};
+
 use base64::{Engine, engine::general_purpose};
 pub use error::Error;
 pub use invoice::{
@@ -59,6 +66,73 @@ use fantoccini::{
 use serde_json::Map;
 
 use crate::template_env::{render_template, setup_template_env};
+
+/// Starts ChromeDriver as a child process on port 4444
+///
+/// # Returns
+/// - [`Child`] if ChromeDriver successfully starts and the port is available
+///
+/// # Errors
+/// - [`crate::Error`] if the chromedriver binary is not in the path, or if port 4444 is not
+/// available, or if the chromedriver process fails to start for any other reason
+pub fn start_chromedriver() -> Result<Child, crate::Error> {
+    if is_port_in_use(4444) {
+        return Err(
+            crate::Error::from("Port 4444 is already in use".to_string())
+                .add_context("starting chromedriver"),
+        );
+    }
+
+    let mut child = Command::new("chromedriver")
+        .arg("--port=4444")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?;
+
+    for _ in 0..100 {
+        if is_port_in_use(4444) {
+            return Ok(child);
+        }
+
+        if child
+            .try_wait()
+            .map_err(crate::Error::from)
+            .add_context("starting chromedriver")?
+            .is_some()
+        {
+            return Err(
+                crate::Error::from(String::from("Chromedriver has stopped unexpectedly"))
+                    .add_context("starting chromedriver"),
+            )?;
+        }
+
+        thread::sleep(Duration::from_millis(10));
+    }
+
+    // Double-check port is now in use
+    if !is_port_in_use(4444u16) {
+        // Kill the child process if it didn't bind to the port
+        child.kill()?;
+        return Err(
+            crate::Error::from(String::from("Chromedriver failed to bind to port 4444"))
+                .add_context("starting chromedriver"),
+        )?;
+    }
+
+    Ok(child)
+}
+
+/// Check if a given port is currently in use
+///
+/// # Arguments
+/// - `port` The port number to check
+///
+/// # Returns
+/// - `true` if the TCP port is currently on use on the localhost
+/// - `false` if the TCP port is not being used on localhost
+fn is_port_in_use(port: u16) -> bool {
+    TcpListener::bind(format!("localhost:{port}")).is_err()
+}
 
 async fn connect_to_client() -> Result<Client, fantoccini::error::NewSessionError> {
     let mut caps = Map::new();
