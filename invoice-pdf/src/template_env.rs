@@ -11,7 +11,7 @@ use std::str::FromStr;
 use bigdecimal::BigDecimal;
 use minijinja::context;
 
-use crate::invoice::Invoice;
+use crate::{LineItem, invoice::Invoice};
 
 /// A custom filter used in the Invoice template. Parses an RFC3339 datetime string and
 /// returns only the year-month-day portion. If the input is not an RFC3339 string, then the
@@ -62,6 +62,161 @@ pub fn pretty_price(raw: &str) -> String {
     format!("${:.2}", dec)
 }
 
+/// Template filter that extracts the `total` from an [`Invoice`] value and formats it as currency.
+///
+/// # Arguments
+/// * `invoice` - A [`minijinja::Value`] representing an [`Invoice`] (passed by the template).
+///
+/// # Returns
+/// A formatted currency string (e.g. `"$12.50"`). Returns `"NaN"` if the input cannot be
+/// deserialized into the expected [`Invoice`] shape.
+///
+/// # Example
+/// ```rust
+/// // Called from a minijinja template as: {{ invoice | invoice_total }}
+/// use invoice_pdf::template_env::invoice_total;
+///
+/// let inv = serde_json::json!({
+///  "acct_id": null,
+///  "created_datetime": "2026-02-10T23:25:22.652523068-05:00",
+///  "id": "test-inv",
+///  "line_items": [
+///    {
+///      "price": "10",
+///      "quantity": 2,
+///      "sku": "test",
+///      "title": "this is a test"
+///    },
+///    {
+///      "price": "10",
+///      "quantity": 1,
+///      "sku": "test",
+///      "title": "this is a test"
+///    }
+///  ],
+///  "logo": null,
+///  "net_due_datetime": "2026-02-10T23:25:22.652607466-05:00",
+///  "paid": "1",
+///  "purchase_order": null,
+///  "receiver": {
+///    "address": null,
+///    "email": null,
+///    "name": "receiver",
+///    "phone": null
+///  },
+///  "sender": {
+///    "address": null,
+///    "email": null,
+///    "name": "sender",
+///    "phone": null
+///  }
+///});
+/// let mini_val: minijinja::Value = serde_json::from_value(inv).unwrap();
+/// assert_eq!(&invoice_total(mini_val), "$30.00");
+/// ```
+pub fn invoice_total(invoice: minijinja::Value) -> String {
+    let json = serde_json::json!(invoice);
+    let Ok(invoice) = serde_json::from_value::<Invoice>(json) else {
+        return String::from("NaN");
+    };
+
+    pretty_price(&invoice.total().to_string())
+}
+
+/// Template filter that computes the net due for an [`Invoice`] (sum(line_items) - paid) and formats it as currency.
+///
+/// # Arguments
+/// * `invoice` - A [`minijinja::Value`] representing an [`Invoice`].
+///
+/// # Returns
+/// A formatted currency string for the net due (e.g. `"$5.00"`). Returns `"NaN"` if the input
+/// cannot be deserialized into [`Invoice`].
+///
+/// # Example
+/// ```rust
+/// // Called from a minijinja template as: {{ invoice | invoice_net_due }}
+/// use invoice_pdf::template_env::invoice_net_due;
+///
+/// let inv = serde_json::json!({
+///  "acct_id": null,
+///  "created_datetime": "2026-02-10T23:25:22.652523068-05:00",
+///  "id": "test-inv",
+///  "line_items": [
+///    {
+///      "price": "10",
+///      "quantity": 2,
+///      "sku": "test",
+///      "title": "this is a test"
+///    },
+///    {
+///      "price": "10",
+///      "quantity": 1,
+///      "sku": "test",
+///      "title": "this is a test"
+///    }
+///  ],
+///  "logo": null,
+///  "net_due_datetime": "2026-02-10T23:25:22.652607466-05:00",
+///  "paid": "1",
+///  "purchase_order": null,
+///  "receiver": {
+///    "address": null,
+///    "email": null,
+///    "name": "receiver",
+///    "phone": null
+///  },
+///  "sender": {
+///    "address": null,
+///    "email": null,
+///    "name": "sender",
+///    "phone": null
+///  }
+///});
+/// let mini_val: minijinja::Value = serde_json::from_value(inv).unwrap();
+/// assert_eq!(&invoice_net_due(mini_val), "$29.00");
+/// ```
+pub fn invoice_net_due(invoice: minijinja::Value) -> String {
+    let json = serde_json::json!(invoice);
+    let Ok(invoice) = serde_json::from_value::<Invoice>(json) else {
+        return String::from("NaN");
+    };
+
+    pretty_price(&invoice.net_due().to_string())
+}
+
+/// Template filter that computes a [`LineItem`]'s total and formats it as currency.
+///
+/// # Arguments
+/// * `line_item` - A [`minijinja::Value`] representing a [`LineItem`].
+///
+/// # Returns
+/// A formatted currency string for the line item's total (e.g. `"$20.00"`). Returns `"NaN"`
+/// if the input cannot be deserialized into [`LineItem`].
+///
+/// # Example
+/// ```rust
+/// // Called from a minijinja template as: {{ line | line_item_total }}
+/// use invoice_pdf::template_env::line_item_total;
+///
+/// let inv = serde_json::json!(
+///    {
+///      "price": "10",
+///      "quantity": 2,
+///      "sku": "test",
+///      "title": "this is a test"
+///    });
+/// let mini_val: minijinja::Value = serde_json::from_value(inv).unwrap();
+/// assert_eq!(&line_item_total(mini_val), "$20.00");
+/// ```
+pub fn line_item_total(line_item: minijinja::Value) -> String {
+    let json = serde_json::json!(line_item);
+    let Ok(line_item) = serde_json::from_value::<LineItem>(json) else {
+        return String::from("NaN");
+    };
+
+    pretty_price(&line_item.total().to_string())
+}
+
 /// Create and configure a minijinja template environment.
 ///
 /// Registers the [`format_ymd`] and [`pretty_price`] filters and loads the
@@ -83,6 +238,9 @@ pub fn setup_template_env() -> Result<minijinja::Environment<'static>, minijinja
     let mut env = minijinja::Environment::new();
     env.add_filter("format_ymd", format_ymd);
     env.add_filter("pretty_price", pretty_price);
+    env.add_filter("invoice_total", invoice_total);
+    env.add_filter("invoice_net_due", invoice_net_due);
+    env.add_filter("line_item_total", line_item_total);
     env.add_template("base.html", BASE)?;
     Ok(env)
 }
