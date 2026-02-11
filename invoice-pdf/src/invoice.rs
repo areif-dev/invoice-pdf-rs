@@ -224,6 +224,11 @@ impl Invoice {
         self.line_items.iter().map(|l| l.quantity * &l.price).sum()
     }
 
+    /// Return a copy of this [`Invoice`]'s id
+    pub fn id(&self) -> String {
+        self.id.to_string()
+    }
+
     /// Return a reference to the invoice's line items.
     pub fn line_items(&self) -> &Vec<LineItem> {
         &self.line_items
