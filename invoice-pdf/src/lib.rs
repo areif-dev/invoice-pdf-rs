@@ -252,6 +252,8 @@ pub async fn generate_pdf(invoice: &Invoice) -> Result<Vec<u8>, crate::Error> {
 mod tests {
     use std::{process::Command, thread::sleep, time::Duration};
 
+    use bigdecimal::BigDecimal;
+
     use super::*;
 
     #[tokio::test]
@@ -265,9 +267,29 @@ mod tests {
             .id("test-inv")
             .sender(PartyBuilder::default().name("sender").build().unwrap())
             .receiver(PartyBuilder::default().name("receiver").build().unwrap())
+            .add_line(
+                LineItemBuilder::default()
+                    .sku("test")
+                    .quantity(2)
+                    .price(10)
+                    .title("this is a test")
+                    .build()
+                    .unwrap(),
+            )
+            .add_line(
+                LineItemBuilder::default()
+                    .sku("test")
+                    .quantity(1)
+                    .price(10)
+                    .title("this is a test")
+                    .build()
+                    .unwrap(),
+            )
+            .paid(BigDecimal::from(1))
             .build()
             .unwrap();
         let v = generate_pdf(&inv).await.unwrap();
+        std::fs::write("test.pdf", &v).unwrap();
         assert!(v.len() > 0);
         c.kill().unwrap();
     }
