@@ -315,7 +315,7 @@ const BASE: &'static str = r#"<!DOCTYPE html>
           <td>{{ line.title }}</td>
           <td style="text-align: right;">{{ line.quantity }}</td>
           <td style="text-align: right;">{{ line.price | pretty_price }}</td>
-          <td style="text-align: right;">{{ line.total | pretty_price }}</td>
+          <td style="text-align: right;">{{ line | line_item_total }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -323,7 +323,7 @@ const BASE: &'static str = r#"<!DOCTYPE html>
     <table class="totals">
       <tr>
         <td><strong>Total:</strong></td>
-        <td style="text-align:right;">{{ invoice.total | pretty_price }}</td>
+        <td style="text-align:right;">{{ invoice | invoice_total }}</td>
       </tr>
       <tr>
         <td><strong>Paid:</strong></td>
@@ -331,7 +331,7 @@ const BASE: &'static str = r#"<!DOCTYPE html>
       </tr>
       <tr>
         <td><strong>Due:</strong></td>
-        <td style="text-align:right;">{{ invoice.due | pretty_price }}</td>
+        <td style="text-align:right;">{{ invoice | invoice_net_due }}</td>
       </tr>
     </table>
   </section>
@@ -375,12 +375,22 @@ mod tests {
             .add_line(
                 LineItemBuilder::default()
                     .sku("test")
+                    .quantity(2)
+                    .price(10)
+                    .title("this is a test")
+                    .build()
+                    .unwrap(),
+            )
+            .add_line(
+                LineItemBuilder::default()
+                    .sku("test")
                     .quantity(1)
                     .price(10)
                     .title("this is a test")
                     .build()
                     .unwrap(),
             )
+            .paid(BigDecimal::from(1))
             .build()
             .unwrap();
         let env = setup_template_env().unwrap();
@@ -391,5 +401,8 @@ mod tests {
         assert!(render.contains("<strong>receiver</strong>"));
         assert!(render.contains("<td>test</td>"));
         assert!(render.contains("<td>this is a test</td>"));
+        assert!(render.contains(r#"<td style="text-align: right;">$20.00</td>"#));
+        assert!(render.contains(r#"<td style="text-align:right;">$30.00</td>"#));
+        assert!(render.contains(r#"<td style="text-align:right;">$29.00</td>"#));
     }
 }

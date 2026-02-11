@@ -165,7 +165,7 @@
           <td>{{ line.title }}</td>
           <td style="text-align: right;">{{ line.quantity }}</td>
           <td style="text-align: right;">{{ line.price | pretty_price }}</td>
-          <td style="text-align: right;">{{ line.total | pretty_price }}</td>
+          <td style="text-align: right;">{{ line | line_item_total }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -173,7 +173,7 @@
     <table class="totals">
       <tr>
         <td><strong>Total:</strong></td>
-        <td style="text-align:right;">{{ invoice.total | pretty_price }}</td>
+        <td style="text-align:right;">{{ invoice | invoice_total }}</td>
       </tr>
       <tr>
         <td><strong>Paid:</strong></td>
@@ -181,7 +181,7 @@
       </tr>
       <tr>
         <td><strong>Due:</strong></td>
-        <td style="text-align:right;">{{ invoice.due | pretty_price }}</td>
+        <td style="text-align:right;">{{ invoice | invoice_net_due }}</td>
       </tr>
     </table>
   </section>
