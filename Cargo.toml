@@ -1,2 +1,3 @@
 [workspace]
 members = ["invoice-pdf", "invoice-pdf-cli"]
+resolver = "3"
