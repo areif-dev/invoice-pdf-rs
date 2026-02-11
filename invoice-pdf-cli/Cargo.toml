@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.5.57", features = ["derive"] }
 invoice-pdf = { path = "../invoice-pdf" }
+serde_json = "1.0.149"
+tokio = { version = "1.49.0", features = ["full"] }
