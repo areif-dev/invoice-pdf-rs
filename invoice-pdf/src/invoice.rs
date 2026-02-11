@@ -6,12 +6,12 @@
 //! [`DateTime`]). Builders are derived for constructing instances,
 //! with some custom build logic for computing totals and due amounts.
 
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, FixedOffset, Local};
 use derive_builder::Builder;
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 fn serialize_bigdecimal<S>(value: &BigDecimal, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -27,23 +27,39 @@ where
     serializer.serialize_str(&value.to_rfc3339())
 }
 
+fn deserialize_bigdecimal<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    BigDecimal::from_str(&s).map_err(serde::de::Error::custom)
+}
+
+fn deserialize_datetime<'de, D>(deserializer: D) -> Result<DateTime<FixedOffset>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    DateTime::parse_from_rfc3339(&s).map_err(serde::de::Error::custom)
+}
+
 /// A single invoice line item encoding information such as stock keeping unit, title, quantity,
 /// and unit price.
-#[derive(Debug, Builder, Serialize)]
-#[builder(setter(strip_option, into), build_fn(skip), pattern = "owned")]
+#[derive(Debug, Builder, Serialize, Deserialize)]
+#[builder(setter(strip_option, into), pattern = "owned")]
 pub struct LineItem {
     sku: String,
     title: String,
     quantity: i32,
-    #[serde(serialize_with = "serialize_bigdecimal")]
+    #[serde(
+        serialize_with = "serialize_bigdecimal",
+        deserialize_with = "deserialize_bigdecimal"
+    )]
     price: BigDecimal,
-    #[builder(setter(skip))]
-    #[serde(serialize_with = "serialize_bigdecimal")]
-    total: BigDecimal,
 }
 
 /// A party involved in the invoice (sender or receiver)
-#[derive(Debug, Builder, Serialize)]
+#[derive(Debug, Builder, Serialize, Deserialize)]
 #[builder(setter(strip_option, into), pattern = "owned")]
 pub struct Party {
     name: String,
@@ -56,7 +72,7 @@ pub struct Party {
 }
 
 /// A postal address
-#[derive(Debug, Builder, Serialize)]
+#[derive(Debug, Builder, Serialize, Deserialize)]
 #[builder(setter(strip_option, into), pattern = "owned")]
 pub struct Address {
     line1: String,
@@ -68,75 +84,38 @@ pub struct Address {
 }
 
 /// Invoice top level model
-#[derive(Debug, Builder, Serialize)]
-#[builder(setter(strip_option, into), pattern = "owned", build_fn(skip))]
+#[derive(Debug, Builder, Serialize, Deserialize)]
+#[builder(setter(strip_option, into), pattern = "owned")]
 pub struct Invoice {
     id: String,
-    #[serde(serialize_with = "serialize_datetime")]
+    #[serde(
+        serialize_with = "serialize_datetime",
+        deserialize_with = "deserialize_datetime"
+    )]
+    #[builder(default = Local::now().into())]
     created_datetime: DateTime<FixedOffset>,
-    #[serde(serialize_with = "serialize_datetime")]
+    #[serde(
+        serialize_with = "serialize_datetime",
+        deserialize_with = "deserialize_datetime"
+    )]
+    #[builder(default = Local::now().into())]
     net_due_datetime: DateTime<FixedOffset>,
     receiver: Party,
     sender: Party,
+    #[builder(default)]
     logo: Option<PathBuf>,
+    #[builder(default = Vec::new())]
     line_items: Vec<LineItem>,
-    #[serde(serialize_with = "serialize_bigdecimal")]
+    #[serde(
+        serialize_with = "serialize_bigdecimal",
+        deserialize_with = "deserialize_bigdecimal"
+    )]
+    #[builder(default = BigDecimal::from(0))]
     paid: BigDecimal,
-    #[serde(serialize_with = "serialize_bigdecimal")]
-    #[builder(setter(skip))]
-    total: BigDecimal,
-    #[serde(serialize_with = "serialize_bigdecimal")]
-    #[builder(setter(skip))]
-    due: BigDecimal,
+    #[builder(default)]
     acct_id: Option<String>,
+    #[builder(default)]
     purchase_order: Option<String>,
-}
-
-impl LineItemBuilder {
-    /// Validate builder fields and compute the `total` for the line item.
-    ///
-    /// # Returns
-    /// [`LineItem`] on success with `total = quantity * price`.
-    ///
-    /// # Errors
-    /// [`LineItemBuilderError::UninitializedField`] if required fields are missing
-    ///
-    /// # Example
-    /// ```rust
-    /// use bigdecimal::BigDecimal;
-    /// use invoice_pdf::LineItemBuilder;
-    ///
-    /// let item = LineItemBuilder::default()
-    ///     .sku("ABC123")
-    ///     .title("Gadget")
-    ///     .quantity(2)
-    ///     .price(BigDecimal::from(9))
-    ///     .build()
-    ///     .unwrap();
-    /// assert_eq!(item.quantity(), 2);
-    /// ```
-    pub fn build(self) -> Result<LineItem, LineItemBuilderError> {
-        let quantity = self
-            .quantity
-            .ok_or(LineItemBuilderError::UninitializedField("quantity"))?;
-        let price = self
-            .price
-            .ok_or(LineItemBuilderError::UninitializedField("price"))?;
-        let sku = self
-            .sku
-            .ok_or(LineItemBuilderError::UninitializedField("sku"))?;
-        let title = self
-            .title
-            .ok_or(LineItemBuilderError::UninitializedField("title"))?;
-
-        Ok(LineItem {
-            total: quantity * &price,
-            sku,
-            title,
-            quantity,
-            price,
-        })
-    }
 }
 
 impl LineItem {
@@ -161,8 +140,8 @@ impl LineItem {
     }
 
     /// Return the computed total for this line item equal to `quantity * price`
-    pub fn total(&self) -> &BigDecimal {
-        &self.total
+    pub fn total(&self) -> BigDecimal {
+        &self.price * self.quantity
     }
 }
 
@@ -203,6 +182,46 @@ impl Invoice {
         let line_item_total: BigDecimal =
             self.line_items.iter().map(|l| l.quantity * &l.price).sum();
         line_item_total - &self.paid
+    }
+
+    /// Compute the invoice total as `sum(line_items)`
+    ///
+    /// # Returns
+    /// A [`BigDecimal`] representing the total value of the invoice without taking any payments
+    /// into account
+    ///
+    /// # Example
+    /// ```rust
+    /// use std::str::FromStr;
+    ///
+    /// use bigdecimal::BigDecimal;
+    /// use invoice_pdf::{InvoiceBuilder, PartyBuilder, AddressBuilder, LineItemBuilder};
+    ///
+    /// let inv = InvoiceBuilder::default()
+    ///     .id("1")
+    ///     .receiver(
+    ///         PartyBuilder::default()
+    ///             .name("A")
+    ///             .build().unwrap())
+    ///     .sender(
+    ///         PartyBuilder::default()
+    ///             .name("B")
+    ///             .build().unwrap())
+    ///     .add_line(
+    ///         LineItemBuilder::default()
+    ///             .sku("test")
+    ///             .title("test")
+    ///             .quantity(1)
+    ///             .price(BigDecimal::from_str("10.99").unwrap())
+    ///             .build().unwrap()
+    ///     )
+    ///     .paid(BigDecimal::from(5))
+    ///     .build().unwrap();
+    /// assert_eq!(inv.total(), BigDecimal::from_str("10.99").unwrap());
+    ///
+    /// ```
+    pub fn total(&self) -> BigDecimal {
+        self.line_items.iter().map(|l| l.quantity * &l.price).sum()
     }
 
     /// Return a reference to the invoice's line items.
@@ -249,97 +268,13 @@ impl InvoiceBuilder {
             },
         }
     }
-
-    /// Finalize the builder into an [`Invoice`], computing `total` and `due`.
-    ///
-    /// Missing optional fields are filled with reasonable defaults:
-    /// * `created_datetime` and `net_due_datetime` default to [`Local::now`].
-    /// * `line_items` defaults to empty vector.
-    /// * `paid` defaults to zero.
-    ///
-    /// # Returns
-    /// [`Invoice`] on success.
-    ///
-    /// # Errors
-    /// [`InvoiceBuilderError::UninitializedField`] if required fields are missing.
-    ///
-    /// # Example
-    /// ```rust
-    /// use invoice_pdf::{InvoiceBuilder, PartyBuilder, AddressBuilder};
-    ///
-    /// // A simple invoice with only required fields filled
-    /// let inv = InvoiceBuilder::default()
-    ///     .id("1")
-    ///     .logo("./logo.png")
-    ///     .receiver(
-    ///         PartyBuilder::default()
-    ///             .name("A")
-    ///             .address(
-    ///                 AddressBuilder::default()
-    ///                 .line1("1 street st")
-    ///                 .city("city")
-    ///                 .province_code("PR")
-    ///                 .postal_code("Post")
-    ///                 .build().unwrap()
-    ///             )
-    ///             .build().unwrap())
-    ///     .sender(
-    ///         PartyBuilder::default()
-    ///             .name("B")
-    ///             .address(
-    ///                 AddressBuilder::default()
-    ///                 .line1("1 street st")
-    ///                 .city("city")
-    ///                 .province_code("PR")
-    ///                 .postal_code("Post")
-    ///                 .build().unwrap()
-    ///             )
-    ///         .build().unwrap())
-    ///     .build().unwrap();
-    /// ```
-    pub fn build(self) -> Result<Invoice, InvoiceBuilderError> {
-        let id = self
-            .id
-            .ok_or(InvoiceBuilderError::UninitializedField("id"))?;
-        let created_datetime = self.created_datetime.unwrap_or(Local::now().into());
-        let net_due_datetime = self.net_due_datetime.unwrap_or(Local::now().into());
-        let receiver = self
-            .receiver
-            .ok_or(InvoiceBuilderError::UninitializedField("receiver"))?;
-        let sender = self
-            .sender
-            .ok_or(InvoiceBuilderError::UninitializedField("sender"))?;
-        let logo = self.logo.unwrap_or(None);
-        let line_items = self.line_items.unwrap_or(Vec::new());
-        let paid = self.paid.unwrap_or(BigDecimal::from(0));
-        let acct_id = self.acct_id.unwrap_or(None);
-        let purchase_order = self.purchase_order.unwrap_or(None);
-
-        let total: BigDecimal = line_items.iter().map(LineItem::total).sum();
-        let due = &total - &paid;
-        Ok(Invoice {
-            id,
-            created_datetime,
-            net_due_datetime,
-            receiver,
-            sender,
-            logo,
-            line_items,
-            paid,
-            due,
-            total,
-            acct_id,
-            purchase_order,
-        })
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use bigdecimal::BigDecimal;
-    use chrono::{DateTime, FixedOffset, Local, TimeZone, Utc};
-    use serde_json::json;
+    use chrono::{DateTime, FixedOffset, TimeZone};
     use std::path::PathBuf;
     use std::str::FromStr;
 
@@ -360,7 +295,37 @@ mod tests {
     }
 
     #[test]
-    fn serialize_bigdecimal() {
+    fn test_deserialize_bigdecimal() {
+        #[derive(Deserialize)]
+        struct Wrap {
+            #[serde(deserialize_with = "super::deserialize_bigdecimal")]
+            bd: BigDecimal,
+        }
+
+        let val = serde_json::json!({"bd": "12.50"});
+        let _: Wrap = serde_json::from_value(val).unwrap();
+        let val = serde_json::json!({"bd": "reee"});
+        let x = serde_json::from_value::<Wrap>(val);
+        assert!(x.is_err())
+    }
+
+    #[test]
+    fn test_deserialize_datetime() {
+        #[derive(Deserialize)]
+        struct Wrap {
+            #[serde(deserialize_with = "super::deserialize_datetime")]
+            date: DateTime<FixedOffset>,
+        }
+
+        let val = serde_json::json!({"date": "2026-02-10T12:00:00+00:00"});
+        let _: Wrap = serde_json::from_value(val).unwrap();
+        let val = serde_json::json!({"bd": "reee"});
+        let x = serde_json::from_value::<Wrap>(val);
+        assert!(x.is_err())
+    }
+
+    #[test]
+    fn test_serialize_bigdecimal() {
         #[derive(Serialize)]
         struct Wrap<'a> {
             #[serde(serialize_with = "super::serialize_bigdecimal")]
@@ -405,7 +370,7 @@ mod tests {
         assert_eq!(&item.title(), "Gadget");
         assert_eq!(&item.sku(), "ABC123");
         assert_eq!(item.price(), &price);
-        assert_eq!(item.total(), &BigDecimal::from(19));
+        assert_eq!(item.total(), BigDecimal::from(19));
     }
 
     #[test]
@@ -530,11 +495,11 @@ mod tests {
 
         // total = 1*10.00 + 3*2.50 = 10.00 + 7.50 = 17.50
         let expected_total = BigDecimal::from_str("17.50").unwrap();
-        assert_eq!(inv.total, expected_total);
+        assert_eq!(inv.total(), expected_total);
 
         // due = total - paid = 12.50
         let expected_due = &expected_total - &paid;
-        assert_eq!(inv.due, expected_due);
+        assert_eq!(inv.net_due(), expected_due);
 
         // net_due() should compute same value
         assert_eq!(inv.net_due(), expected_due);
