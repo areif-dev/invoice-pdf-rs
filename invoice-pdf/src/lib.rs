@@ -87,7 +87,9 @@ pub fn start_chromedriver() -> Result<Child, crate::Error> {
         .arg("--port=4444")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .spawn()?;
+        .spawn()
+        .map_err(crate::Error::from)
+        .add_context("starting chromedriver on port 4444")?;
 
     for _ in 0..100 {
         if is_port_in_use(4444) {
@@ -112,7 +114,11 @@ pub fn start_chromedriver() -> Result<Child, crate::Error> {
     // Double-check port is now in use
     if !is_port_in_use(4444u16) {
         // Kill the child process if it didn't bind to the port
-        child.kill()?;
+        child
+            .kill()
+            .map_err(crate::Error::from)
+            .add_context("killing chromedriver")
+            .add_context("chromedriver failed to bind to port 4444")?;
         return Err(
             crate::Error::from(String::from("Chromedriver failed to bind to port 4444"))
                 .add_context("starting chromedriver"),
