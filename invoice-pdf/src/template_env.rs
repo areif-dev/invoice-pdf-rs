@@ -459,7 +459,8 @@ const BASE: &'static str = r#"<!DOCTYPE html>
     <table>
       <thead>
         <tr>
-          <th style="width:10%">No.</th>
+          <th style="width:10%">SKU</th>
+          <th style="width:15%">UPC</th>
           <th>Description</th>
           <th style="width:10%; text-align: right;">Qty</th>
           <th style="width:15%; text-align: right;">Unit Price</th>
@@ -470,6 +471,7 @@ const BASE: &'static str = r#"<!DOCTYPE html>
         {% for line in lines %}
         <tr>
           <td>{{ line.sku }}</td>
+          <td>{% if line.gtin %}{{ line.gtin }}{% endif %}</td>
           <td>{{ line.title }}</td>
           <td style="text-align: right;">{{ line.quantity }}</td>
           <td style="text-align: right;">{{ line.price | pretty_price }}</td>

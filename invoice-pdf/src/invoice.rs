@@ -11,6 +11,7 @@ use std::{path::PathBuf, str::FromStr};
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, FixedOffset, Local};
 use derive_builder::Builder;
+use gtin::Gtin;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 fn serialize_bigdecimal<S>(value: &BigDecimal, serializer: S) -> Result<S::Ok, S::Error>
@@ -51,6 +52,8 @@ pub struct LineItem {
     sku: String,
     title: String,
     quantity: i32,
+    #[builder(setter(into), default)]
+    gtin: Option<Gtin>,
     #[serde(
         serialize_with = "serialize_bigdecimal",
         deserialize_with = "deserialize_bigdecimal"
@@ -142,6 +145,11 @@ impl LineItem {
     /// Return the computed total for this line item equal to `quantity * price`
     pub fn total(&self) -> BigDecimal {
         &self.price * self.quantity
+    }
+
+    /// Return this line item's barcode/upc/gtin, if it exists
+    pub fn gtin(&self) -> Option<Gtin> {
+        self.gtin
     }
 }
 
@@ -364,6 +372,7 @@ mod tests {
         let price = BigDecimal::from_str("9.50").unwrap();
         let item = LineItemBuilder::default()
             .sku("ABC123")
+            .gtin(Gtin::new("082657543338").unwrap())
             .title("Gadget")
             .quantity(2)
             .price(price.clone())
@@ -375,6 +384,7 @@ mod tests {
         assert_eq!(&item.title(), "Gadget");
         assert_eq!(&item.sku(), "ABC123");
         assert_eq!(item.price(), &price);
+        assert_eq!(&item.gtin().unwrap().to_string(), "00082657543338");
         assert_eq!(item.total(), BigDecimal::from(19));
     }
 
@@ -546,5 +556,14 @@ mod tests {
             .logo(PathBuf::from("./logo.png"))
             .build()
             .unwrap_err();
+
+        // Missing UPC, which is not required, so it should work
+        let _ = InvoiceBuilder::default()
+            .id("1")
+            .receiver(make_party("R"))
+            .sender(make_party("S"))
+            .logo(PathBuf::from("./logo.png"))
+            .build()
+            .unwrap();
     }
 }
