@@ -458,6 +458,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "gtin"
+version = "1.1.0"
+source = "git+https://github.com/areif-dev/gtin#9baf9d40ad2f23a09eaca69c167905bd73d4bda2"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -811,13 +819,14 @@ dependencies = [
 
 [[package]]
 name = "invoice-pdf"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "base64",
  "bigdecimal",
  "chrono",
  "derive_builder",
  "fantoccini",
+ "gtin",
  "minijinja",
  "serde",
  "serde_json",
