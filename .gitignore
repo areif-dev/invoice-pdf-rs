@@ -1,3 +1,6 @@
 /target
 logo.*
 invoice.*
+*.pdf
+*.exe 
+*.json
