@@ -390,7 +390,7 @@ const BASE: &'static str = r#"<!DOCTYPE html>
   <section class="page">
     <section class="header">
       <div class="header-left">
-        <img class="logo" src="{{ invoice.logo }}" alt="Logo">
+        {% if invoice.logo %}<img class="logo" src="{{ invoice.logo }}" alt="Logo">{% endif %}
         <address class="address">
           <strong>{{ invoice.sender.name }}</strong><br>
           {% if invoice.sender.address %}
