@@ -459,12 +459,12 @@ const BASE: &'static str = r#"<!DOCTYPE html>
     <table>
       <thead>
         <tr>
-          <th style="width:10%">SKU</th>
-          <th style="width:15%">UPC</th>
-          <th>Description</th>
-          <th style="width:10%; text-align: right;">Qty</th>
-          <th style="width:15%; text-align: right;">Unit Price</th>
-          <th style="width:15%; text-align: right;">Amount</th>
+          <th style="max-width:10%;">SKU</th>
+          <th style="max-width:15%;">UPC</th>
+          <th style="max-width:35%;">Description</th>
+          <th style="max-width:10%; text-align: right;">Qty</th>
+          <th style="max-width:15%; text-align: right;">Unit Price</th>
+          <th style="max-width:15%; text-align: right;">Amount</th>
         </tr>
       </thead>
       <tbody>
@@ -498,6 +498,7 @@ const BASE: &'static str = r#"<!DOCTYPE html>
 </body>
 
 </html>
+
 "#;
 
 #[cfg(test)]
