@@ -82,39 +82,39 @@
   <section class="page">
     <section class="header">
       <div class="header-left">
-        {% if invoice.logo %}<img class="logo" src="{{ invoice.logo }}" alt="Logo">{% endif %}
+        {% if let Some(logo) = invoice.logo() %}
+          <img class="logo" src="{{ logo.display() }}" alt="Logo">
+        {% endif %}
         <address class="address">
-          <strong>{{ invoice.sender.name }}</strong><br>
-          {% if invoice.sender.address %}
-          {{ invoice.sender.address.line1 }}<br>
-          {% if invoice.sender.address.line2 %}
-          {{ invoice.sender.address.line2 }}<br>
+          <strong>{{ invoice.sender().name() }}</strong><br>
+          {% if let Some(address) = invoice.sender().address() %}
+            {{ address.line1() }}<br>
+            {% if let Some(line2) = address.line2() %}
+              {{ line2 }}<br>
+            {% endif %}
+            {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
           {% endif %}
-          {{ invoice.sender.address.city }}, {{ invoice.sender.address.province_code }} {{
-          invoice.sender.address.postal_code }}<br>
+          {% if let Some(phone) = invoice.sender().phone() %}
+            {{ phone }}<br>
           {% endif %}
-          {% if invoice.sender.phone %}
-          {{ invoice.sender.phone }}<br>
-          {% endif %}
-          {% if invoice.sender.email %}
-          {{ invoice.sender.email }}<br>
+          {% if let Some(email) = invoice.sender().email() %}
+            {{ email }}<br>
           {% endif %}
         </address>
         <address class="address">
-          <strong>{{ invoice.receiver.name }}</strong><br>
-          {% if invoice.receiver.address %}
-          {{ invoice.receiver.address.line1 }}<br>
-          {% if invoice.receiver.address.line2 %}
-          {{ invoice.receiver.address.line2 }}<br>
+          <strong>{{ invoice.receiver().name() }}</strong><br>
+          {% if let Some(address) = invoice.receiver().address() %}
+            {{ address.line1() }}<br>
+            {% if let Some(line2) = address.line2() %}
+              {{ line2 }}<br>
+            {% endif %}
+            {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
           {% endif %}
-          {{ invoice.receiver.address.city }}, {{ invoice.receiver.address.province_code }} {{
-          invoice.receiver.address.postal_code }}<br>
+          {% if let Some(phone) = invoice.receiver().phone() %}
+            {{ phone }}<br>
           {% endif %}
-          {% if invoice.receiver.phone %}
-          {{ invoice.receiver.phone }}<br>
-          {% endif %}
-          {% if invoice.receiver.email %}
-          {{ invoice.receiver.email }}<br>
+          {% if let Some(email) = invoice.receiver().email() %}
+            {{ email }}<br>
           {% endif %}
         </address>
       </div>
@@ -122,26 +122,26 @@
         <table style="border: none;">
           <tr>
             <td><strong>Invoice:</strong></td>
-            <td>{{ invoice.id }}</td>
+            <td>{{ invoice.id() }}</td>
           </tr>
           <tr>
             <td><strong>Date:</strong></td>
-            <td>{{ invoice.created_datetime | format_ymd }}</td>
+            <td>{{ invoice.created_datetime()|format_ymd }}</td>
           </tr>
           <tr>
             <td><strong>Due Date:</strong></td>
-            <td>{{ invoice.net_due_datetime | format_ymd }}</td>
+            <td>{{ invoice.net_due_datetime()|format_ymd }}</td>
           </tr>
-          {% if invoice.acct_id %}
+          {% if let Some(acct_id) = invoice.acct_id() %}
           <tr>
             <td><strong>Account ID:</strong></td>
-            <td>{{ invoice.acct_id }}</td>
+            <td>{{ acct_id }}</td>
           </tr>
           {% endif %}
-          {% if invoice.purchase_order %}
+          {% if let Some(purchase_order) = invoice.purchase_order() %}
           <tr>
             <td><strong>Purchase Order:</strong></td>
-            <td>{{ invoice.purchase_order }}</td>
+            <td>{{ purchase_order }}</td>
           </tr>
           {% endif %}
         </table>
@@ -160,14 +160,14 @@
         </tr>
       </thead>
       <tbody>
-        {% for line in lines %}
+        {% for line in invoice.line_items() %}
         <tr>
-          <td>{{ line.sku }}</td>
-          <td>{% if line.gtin %}{{ line.gtin }}{% endif %}</td>
-          <td>{{ line.title }}</td>
-          <td style="text-align: right;">{{ line.quantity }}</td>
-          <td style="text-align: right;">{{ line.price | pretty_price }}</td>
-          <td style="text-align: right;">{{ line | line_item_total }}</td>
+          <td>{{ line.sku() }}</td>
+          <td>{% if let Some(gtin) = line.gtin() %}{{ gtin }}{% endif %}</td>
+          <td>{{ line.title() }}</td>
+          <td style="text-align: right;">{{ line.quantity() }}</td>
+          <td style="text-align: right;">{{ line.price() }}</td>
+          <td style="text-align: right;">{{ line.total()|pretty_price }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -175,15 +175,15 @@
     <table class="totals">
       <tr>
         <td><strong>Total:</strong></td>
-        <td style="text-align:right;">{{ invoice | invoice_total }}</td>
+        <td style="text-align:right;">{{ invoice.total()|pretty_price }}</td>
       </tr>
       <tr>
         <td><strong>Paid:</strong></td>
-        <td style="text-align:right;">{{ invoice.paid | pretty_price }}</td>
+        <td style="text-align:right;">{{ invoice.paid()|pretty_price }}</td>
       </tr>
       <tr>
         <td><strong>Due:</strong></td>
-        <td style="text-align:right;">{{ invoice | invoice_net_due }}</td>
+        <td style="text-align:right;">{{ invoice.net_due()|pretty_price }}</td>
       </tr>
     </table>
   </section>
