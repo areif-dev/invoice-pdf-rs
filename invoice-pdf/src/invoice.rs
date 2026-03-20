@@ -241,6 +241,96 @@ impl Invoice {
     pub fn line_items(&self) -> &Vec<LineItem> {
         &self.line_items
     }
+
+    /// Get the date and time when this invoice was created
+    pub fn created_datetime(&self) -> &DateTime<FixedOffset> {
+        &self.created_datetime
+    }
+
+    /// Get the date and time when full payment is due
+    pub fn net_due_datetime(&self) -> &DateTime<FixedOffset> {
+        &self.net_due_datetime
+    }
+
+    /// Get the information for the receiver of the invoice
+    pub fn receiver(&self) -> &Party {
+        &self.receiver
+    }
+
+    /// Get the information for the sender of the invoice
+    pub fn sender(&self) -> &Party {
+        &self.sender
+    }
+
+    /// Get the path to the logo, if one exists
+    pub fn logo(&self) -> &Option<PathBuf> {
+        &self.logo
+    }
+
+    /// Get the amount paid on the invoice as a [`BigDecimal`]
+    pub fn paid(&self) -> BigDecimal {
+        self.paid.clone()
+    }
+
+    /// Get the receiver's account id, if one exists
+    pub fn acct_id(&self) -> &Option<String> {
+        &self.acct_id
+    }
+
+    /// Get the receiver's purchase order, if one exists
+    pub fn purchase_order(&self) -> &Option<String> {
+        &self.purchase_order
+    }
+}
+
+impl Party {
+    /// Get this [`Party`]'s name
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the phone number, if one exists
+    pub fn phone(&self) -> &Option<String> {
+        &self.phone
+    }
+
+    /// Get the email address, if one exists
+    pub fn email(&self) -> &Option<String> {
+        &self.email
+    }
+
+    /// Get the address, if one exists
+    pub fn address(&self) -> &Option<Address> {
+        &self.address
+    }
+}
+
+impl Address {
+    /// Get the primary line of the address. This will likely be a house number and street name. Eg
+    /// 1600 Pennsylvania Ave
+    pub fn line1(&self) -> &str {
+        &self.line1
+    }
+
+    /// Get the optional secondary address line. This is usually an apartment or po box
+    pub fn line2(&self) -> &Option<String> {
+        &self.line2
+    }
+
+    /// Get the name of the city where the [`Party`] lives
+    pub fn city(&self) -> &str {
+        &self.city
+    }
+
+    /// Get the province or state code. Eg Pennsylvania should be "PA"
+    pub fn province_code(&self) -> &str {
+        &self.province_code
+    }
+
+    /// Get the postal or zip code
+    pub fn postal_code(&self) -> &str {
+        &self.postal_code
+    }
 }
 
 impl InvoiceBuilder {
