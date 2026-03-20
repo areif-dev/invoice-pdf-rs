@@ -2,318 +2,46 @@
 //!
 //! This module provides template filters and helpers used when rendering
 //! invoices to HTML. It registers custom filters for formatting RFC3339
-//! datetimes and decimal prices, exposes a pre-defined base template, and
-//! offers a convenience function to render an Invoice into HTML using the
-//! minijinja template environment.
-//!
-use std::str::FromStr;
+//! datetimes and decimal prices, and offers a convenience function to
+//! render an Invoice into HTML using the askama template engine.
 
 use askama::Template;
 use bigdecimal::BigDecimal;
-use minijinja::context;
+use chrono::{DateTime, FixedOffset};
 
 use crate::{LineItem, invoice::Invoice};
 
-/// A custom filter used in the Invoice template. Parses an RFC3339 datetime string and
-/// returns only the year-month-day portion. If the input is not an RFC3339 string, then the
-/// returned value will be "N/A"
-///
-/// # Arguments
-/// * `raw` - A string slice containing an RFC3339 datetime (e.g. "2024-01-02T15:04:05Z"). If the
-/// string is not an RFC3339 string, then the value returned will be "N/A"
-///
-/// # Returns
-/// A string with the date formatted as YYYY-MM-DD. If parsing fails, returns "N/A".
-///
-/// # Example
-/// ```rust
-/// use invoice_pdf::template_env;
-///
-/// let s = "2024-01-02T15:04:05Z";
-/// assert_eq!(&template_env::format_ymd(s), "2024-01-02");
-/// ```
-pub fn format_ymd(raw: &str) -> String {
-    let Ok(datetime) = chrono::DateTime::parse_from_rfc3339(raw) else {
-        return String::from("N/A");
-    };
-    datetime.format("%Y-%m-%d").to_string()
-}
+/// Define the filters module for Askama.
+/// Askama automatically looks for a `filters` module in the same scope as the template.
+pub mod filters {
+    use super::*;
 
-/// A custom filter to be used in the Invoice template. Format a decimal-like string as a
-/// US-style dollar amount with two decimals.
-///
-/// # Arguments
-/// * `raw` - A string slice containing a decimal representation (e.g. "12.5").
-///
-/// # Returns
-/// A string with a leading $ and exactly two fractional digits (e.g. "$12.50").
-/// If parsing fails, returns "NaN".
-///
-/// # Example
-/// ```rust
-/// use invoice_pdf::template_env;
-///
-/// let s = "12.5";
-/// assert_eq!(&template_env::pretty_price(s), "$12.50");
-/// ```
-pub fn pretty_price(raw: &str) -> String {
-    let Ok(dec) = BigDecimal::from_str(&raw) else {
-        return String::from("NaN");
-    };
-    format!("${:.2}", dec)
-}
+    /// Format a datetime as YYYY-MM-DD.
+    #[askama::filter_fn]
+    pub fn format_ymd(
+        dt: &DateTime<FixedOffset>,
+        _env: &dyn askama::Values,
+    ) -> askama::Result<String> {
+        Ok(dt.format("%Y-%m-%d").to_string())
+    }
 
-/// Template filter that extracts the `total` from an [`Invoice`] value and formats it as currency.
-///
-/// # Arguments
-/// * `invoice` - A [`minijinja::Value`] representing an [`Invoice`] (passed by the template).
-///
-/// # Returns
-/// A formatted currency string (e.g. `"$12.50"`). Returns `"NaN"` if the input cannot be
-/// deserialized into the expected [`Invoice`] shape.
-///
-/// # Example
-/// ```rust
-/// // Called from a minijinja template as: {{ invoice | invoice_total }}
-/// use invoice_pdf::template_env::invoice_total;
-///
-/// let inv = serde_json::json!({
-///  "acct_id": null,
-///  "created_datetime": "2026-02-10T23:25:22.652523068-05:00",
-///  "id": "test-inv",
-///  "line_items": [
-///    {
-///      "price": "10",
-///      "quantity": 2,
-///      "sku": "test",
-///      "title": "this is a test"
-///    },
-///    {
-///      "price": "10",
-///      "quantity": 1,
-///      "sku": "test",
-///      "title": "this is a test"
-///    }
-///  ],
-///  "logo": null,
-///  "net_due_datetime": "2026-02-10T23:25:22.652607466-05:00",
-///  "paid": "1",
-///  "purchase_order": null,
-///  "receiver": {
-///    "address": null,
-///    "email": null,
-///    "name": "receiver",
-///    "phone": null
-///  },
-///  "sender": {
-///    "address": null,
-///    "email": null,
-///    "name": "sender",
-///    "phone": null
-///  }
-///});
-/// let mini_val: minijinja::Value = serde_json::from_value(inv).unwrap();
-/// assert_eq!(&invoice_total(mini_val), "$30.00");
-/// ```
-pub fn invoice_total(invoice: minijinja::Value) -> String {
-    let json = serde_json::json!(invoice);
-    let Ok(invoice) = serde_json::from_value::<Invoice>(json) else {
-        return String::from("NaN");
-    };
-
-    pretty_price(&invoice.total().to_string())
-}
-
-/// Template filter that computes the net due for an [`Invoice`] (sum(line_items) - paid) and formats it as currency.
-///
-/// # Arguments
-/// * `invoice` - A [`minijinja::Value`] representing an [`Invoice`].
-///
-/// # Returns
-/// A formatted currency string for the net due (e.g. `"$5.00"`). Returns `"NaN"` if the input
-/// cannot be deserialized into [`Invoice`].
-///
-/// # Example
-/// ```rust
-/// // Called from a minijinja template as: {{ invoice | invoice_net_due }}
-/// use invoice_pdf::template_env::invoice_net_due;
-///
-/// let inv = serde_json::json!({
-///  "acct_id": null,
-///  "created_datetime": "2026-02-10T23:25:22.652523068-05:00",
-///  "id": "test-inv",
-///  "line_items": [
-///    {
-///      "price": "10",
-///      "quantity": 2,
-///      "sku": "test",
-///      "title": "this is a test"
-///    },
-///    {
-///      "price": "10",
-///      "quantity": 1,
-///      "sku": "test",
-///      "title": "this is a test"
-///    }
-///  ],
-///  "logo": null,
-///  "net_due_datetime": "2026-02-10T23:25:22.652607466-05:00",
-///  "paid": "1",
-///  "purchase_order": null,
-///  "receiver": {
-///    "address": null,
-///    "email": null,
-///    "name": "receiver",
-///    "phone": null
-///  },
-///  "sender": {
-///    "address": null,
-///    "email": null,
-///    "name": "sender",
-///    "phone": null
-///  }
-///});
-/// let mini_val: minijinja::Value = serde_json::from_value(inv).unwrap();
-/// assert_eq!(&invoice_net_due(mini_val), "$29.00");
-/// ```
-pub fn invoice_net_due(invoice: minijinja::Value) -> String {
-    let json = serde_json::json!(invoice);
-    let Ok(invoice) = serde_json::from_value::<Invoice>(json) else {
-        return String::from("NaN");
-    };
-
-    pretty_price(&invoice.net_due().to_string())
-}
-
-/// Template filter that computes a [`LineItem`]'s total and formats it as currency.
-///
-/// # Arguments
-/// * `line_item` - A [`minijinja::Value`] representing a [`LineItem`].
-///
-/// # Returns
-/// A formatted currency string for the line item's total (e.g. `"$20.00"`). Returns `"NaN"`
-/// if the input cannot be deserialized into [`LineItem`].
-///
-/// # Example
-/// ```rust
-/// // Called from a minijinja template as: {{ line | line_item_total }}
-/// use invoice_pdf::template_env::line_item_total;
-///
-/// let inv = serde_json::json!(
-///    {
-///      "price": "10",
-///      "quantity": 2,
-///      "sku": "test",
-///      "title": "this is a test"
-///    });
-/// let mini_val: minijinja::Value = serde_json::from_value(inv).unwrap();
-/// assert_eq!(&line_item_total(mini_val), "$20.00");
-/// ```
-pub fn line_item_total(line_item: minijinja::Value) -> String {
-    let json = serde_json::json!(line_item);
-    let Ok(line_item) = serde_json::from_value::<LineItem>(json) else {
-        return String::from("NaN");
-    };
-
-    pretty_price(&line_item.total().to_string())
-}
-
-/// Create and configure a minijinja template environment.
-///
-/// Registers the [`format_ymd`] and [`pretty_price`] filters and loads the
-/// built-in base HTML template.
-///
-/// # Returns
-/// * [`minijinja::Environment`] with the configured environment on success.
-///
-/// # Errors
-/// * [`minijinja::Error`] if loading the built-in template fails.
-///
-/// # Example
-/// ```rust
-/// use invoice_pdf::template_env;
-///
-/// let env = template_env::setup_template_env().expect("setup env");
-/// ```
-pub fn setup_template_env() -> Result<minijinja::Environment<'static>, minijinja::Error> {
-    let mut env = minijinja::Environment::new();
-    env.add_filter("format_ymd", format_ymd);
-    env.add_filter("pretty_price", pretty_price);
-    env.add_filter("invoice_total", invoice_total);
-    env.add_filter("invoice_net_due", invoice_net_due);
-    env.add_filter("line_item_total", line_item_total);
-    env.add_template("base.html", BASE)?;
-    Ok(env)
-}
-
-/// Render the Invoice using the provided [`minijinja`] environment and the
-/// embedded base template.
-///
-/// # Arguments
-/// * `env` - A reference to a configured [`minijinja::Environment`].
-/// * `invoice` - The [`Invoice`] to render
-///
-/// # Returns
-/// * [`String`] containing the rendered HTML on success.
-///
-/// # Errors
-/// * [`minijinja::Error`] if template retrieval or rendering fails.
-///
-/// # Example
-/// ```rust
-/// use invoice_pdf::{template_env, InvoiceBuilder, AddressBuilder, PartyBuilder};
-///
-/// let env = template_env::setup_template_env().unwrap();
-/// let inv = InvoiceBuilder::default()
-///     .id("1")
-///     .logo("./logo.png")
-///     .receiver(
-///         PartyBuilder::default()
-///             .name("A")
-///             .address(
-///                 AddressBuilder::default()
-///                 .line1("1 street st")
-///                 .city("city")
-///                 .province_code("PR")
-///                 .postal_code("Post")
-///                 .build().unwrap()
-///             )
-///             .build().unwrap())
-///     .sender(
-///         PartyBuilder::default()
-///             .name("B")
-///             .address(
-///                 AddressBuilder::default()
-///                 .line1("1 street st")
-///                 .city("city")
-///                 .province_code("PR")
-///                 .postal_code("Post")
-///                 .build().unwrap()
-///             )
-///         .build().unwrap())
-///     .build().unwrap();
-/// let html = template_env::render_template(&env, &inv).unwrap();
-/// ```
-pub fn render_template(
-    env: &minijinja::Environment<'static>,
-    invoice: &Invoice,
-) -> Result<String, minijinja::Error> {
-    let template = env.get_template("base.html")?;
-    template.render(context! {
-        lines => invoice.line_items(),
-        invoice => invoice
-    })
+    /// Format a BigDecimal as a US-style dollar amount.
+    #[askama::filter_fn]
+    pub fn pretty_price(b: BigDecimal, _env: &dyn askama::Values) -> askama::Result<String> {
+        Ok(format!("${:.2}", b))
+    }
 }
 
 #[derive(Template)]
 #[template(path = "base.html")]
-struct InvoiceTemplate<'a> {
-    invoice: &'a Invoice,
+pub struct InvoiceTemplate<'a> {
+    pub invoice: &'a Invoice,
 }
 
 #[cfg(test)]
 mod tests {
     use chrono::TimeZone;
+    use std::str::FromStr;
 
     use crate::{InvoiceBuilder, LineItemBuilder, PartyBuilder};
 
@@ -321,20 +49,17 @@ mod tests {
 
     #[test]
     fn test_format_ymd() {
-        let good = chrono::Utc
+        let dt = chrono::Utc
             .with_ymd_and_hms(2026, 02, 09, 12, 00, 00)
-            .unwrap();
-        assert_eq!(&format_ymd(&good.to_rfc3339()), "2026-02-09");
-
-        let bad = "REEE";
-        assert_eq!(&format_ymd(bad), "N/A");
+            .unwrap()
+            .into();
+        assert_eq!(filters::format_ymd(&dt).unwrap(), "2026-02-09");
     }
 
     #[test]
-    fn test_pretty_print() {
-        let good = BigDecimal::from_str("19.99").unwrap();
-        assert_eq!(&pretty_price(&good.to_string()), "$19.99");
-        assert_eq!(&pretty_price("reee"), "NaN");
+    fn test_pretty_price() {
+        let b = BigDecimal::from_str("19.99").unwrap();
+        assert_eq!(filters::pretty_price(&b).unwrap(), "$19.99");
     }
 
     #[test]
@@ -347,7 +72,7 @@ mod tests {
                 LineItemBuilder::default()
                     .sku("test")
                     .quantity(2)
-                    .price(10)
+                    .price(BigDecimal::from(10))
                     .title("this is a test")
                     .build()
                     .unwrap(),
@@ -356,7 +81,7 @@ mod tests {
                 LineItemBuilder::default()
                     .sku("test")
                     .quantity(1)
-                    .price(10)
+                    .price(BigDecimal::from(10))
                     .title("this is a test")
                     .build()
                     .unwrap(),
@@ -364,8 +89,7 @@ mod tests {
             .paid(BigDecimal::from(1))
             .build()
             .unwrap();
-        let env = setup_template_env().unwrap();
-        let render = render_template(&env, &inv).unwrap();
+        let render = render_template(&inv).unwrap();
         assert!(render.starts_with("<!DOCTYPE html>"));
         assert!(render.contains("<td>test id</td>"));
         assert!(render.contains("<strong>sender</strong>"));
