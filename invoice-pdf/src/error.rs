@@ -27,7 +27,7 @@ pub enum ErrorKind {
     FantocciniNewSession(fantoccini::error::NewSessionError),
     FantocciniCmdError(fantoccini::error::CmdError),
     FantocciniPrintError(fantoccini::error::PrintConfigurationError),
-    Minijinja(minijinja::Error),
+    Askama(askama::Error),
     Other(String),
 }
 
@@ -93,11 +93,11 @@ impl From<fantoccini::error::CmdError> for Error {
     }
 }
 
-impl From<minijinja::Error> for Error {
-    fn from(value: minijinja::Error) -> Self {
+impl From<askama::Error> for Error {
+    fn from(value: askama::Error) -> Self {
         Error {
             context: vec![format!("{:?}", value)],
-            kind: ErrorKind::Minijinja(value),
+            kind: ErrorKind::Askama(value),
         }
     }
 }
