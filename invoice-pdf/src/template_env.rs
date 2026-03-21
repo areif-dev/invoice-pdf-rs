@@ -9,12 +9,20 @@ use askama::Template;
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, FixedOffset};
 
-use crate::{LineItem, invoice::Invoice};
+use crate::invoice::Invoice;
 
 /// Define the filters module for Askama.
 /// Askama automatically looks for a `filters` module in the same scope as the template.
-pub mod filters {
+mod filters {
     use super::*;
+
+    pub fn format_ymd_helper(dt: &DateTime<FixedOffset>) -> String {
+        dt.format("%Y-%m-%d").to_string()
+    }
+
+    pub fn pretty_price_helper(b: BigDecimal) -> String {
+        format!("${:.2}", b)
+    }
 
     /// Format a datetime as YYYY-MM-DD.
     #[askama::filter_fn]
@@ -22,13 +30,13 @@ pub mod filters {
         dt: &DateTime<FixedOffset>,
         _env: &dyn askama::Values,
     ) -> askama::Result<String> {
-        Ok(dt.format("%Y-%m-%d").to_string())
+        Ok(format_ymd_helper(dt))
     }
 
     /// Format a BigDecimal as a US-style dollar amount.
     #[askama::filter_fn]
     pub fn pretty_price(b: BigDecimal, _env: &dyn askama::Values) -> askama::Result<String> {
-        Ok(format!("${:.2}", b))
+        Ok(pretty_price_helper(b))
     }
 }
 
@@ -53,13 +61,13 @@ mod tests {
             .with_ymd_and_hms(2026, 02, 09, 12, 00, 00)
             .unwrap()
             .into();
-        assert_eq!(filters::format_ymd(&dt).unwrap(), "2026-02-09");
+        assert_eq!(filters::format_ymd_helper(&dt), "2026-02-09");
     }
 
     #[test]
     fn test_pretty_price() {
         let b = BigDecimal::from_str("19.99").unwrap();
-        assert_eq!(filters::pretty_price(&b).unwrap(), "$19.99");
+        assert_eq!(filters::pretty_price_helper(b), "$19.99");
     }
 
     #[test]
@@ -89,7 +97,7 @@ mod tests {
             .paid(BigDecimal::from(1))
             .build()
             .unwrap();
-        let render = render_template(&inv).unwrap();
+        let render = InvoiceTemplate { invoice: &inv }.render().unwrap();
         assert!(render.starts_with("<!DOCTYPE html>"));
         assert!(render.contains("<td>test id</td>"));
         assert!(render.contains("<strong>sender</strong>"));
