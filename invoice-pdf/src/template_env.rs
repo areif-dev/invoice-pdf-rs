@@ -20,8 +20,15 @@ mod filters {
         dt.format("%Y-%m-%d").to_string()
     }
 
-    pub fn pretty_price_helper(b: BigDecimal) -> String {
-        format!("${:.2}", b)
+    pub fn pretty_price_helper(b: BigDecimal, max_fractional_digits: usize) -> String {
+        let max_fractional_digits: i64 = max_fractional_digits.try_into().unwrap_or(2);
+        if b.fractional_digit_count() <= max_fractional_digits {
+            let fractional_digit_count: usize = b.fractional_digit_count().try_into().unwrap_or(2);
+            format!("${:.fractional_digit_count$}", b)
+        } else {
+            let max_fractional_digits: usize = max_fractional_digits.try_into().unwrap_or(2);
+            format!("${:.max_fractional_digits$}", b)
+        }
     }
 
     /// Format a datetime as YYYY-MM-DD.
