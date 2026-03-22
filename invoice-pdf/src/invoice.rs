@@ -123,8 +123,8 @@ pub struct Invoice {
 
 impl LineItem {
     /// Return the unit price for this line item.
-    pub fn price(&self) -> &BigDecimal {
-        &self.price
+    pub fn price(&self) -> BigDecimal {
+        self.price.clone()
     }
 
     /// Return the quantity for this line item.
@@ -473,7 +473,7 @@ mod tests {
         assert_eq!(item.quantity(), 2);
         assert_eq!(&item.title(), "Gadget");
         assert_eq!(&item.sku(), "ABC123");
-        assert_eq!(item.price(), &price);
+        assert_eq!(item.price(), price);
         assert_eq!(&item.gtin().unwrap().to_string(), "00082657543338");
         assert_eq!(item.total(), BigDecimal::from(19));
     }
