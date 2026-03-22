@@ -166,8 +166,8 @@
           <td>{% if let Some(gtin) = line.gtin() %}{{ gtin }}{% endif %}</td>
           <td>{{ line.title() }}</td>
           <td style="text-align: right;">{{ line.quantity() }}</td>
-          <td style="text-align: right;">{{ line.price() }}</td>
-          <td style="text-align: right;">{{ line.total()|pretty_price }}</td>
+          <td style="text-align: right;">{{ line.price()|pretty_price(3) }}</td>
+          <td style="text-align: right;">{{ line.total()|pretty_price(2) }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -175,15 +175,15 @@
     <table class="totals">
       <tr>
         <td><strong>Total:</strong></td>
-        <td style="text-align:right;">{{ invoice.total()|pretty_price }}</td>
+        <td style="text-align:right;">{{ invoice.total()|pretty_price(2) }}</td>
       </tr>
       <tr>
         <td><strong>Paid:</strong></td>
-        <td style="text-align:right;">{{ invoice.paid()|pretty_price }}</td>
+        <td style="text-align:right;">{{ invoice.paid()|pretty_price(2) }}</td>
       </tr>
       <tr>
         <td><strong>Due:</strong></td>
-        <td style="text-align:right;">{{ invoice.net_due()|pretty_price }}</td>
+        <td style="text-align:right;">{{ invoice.net_due()|pretty_price(2) }}</td>
       </tr>
     </table>
   </section>
