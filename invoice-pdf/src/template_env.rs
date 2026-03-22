@@ -21,14 +21,7 @@ mod filters {
     }
 
     pub fn pretty_price_helper(b: BigDecimal, max_fractional_digits: usize) -> String {
-        let max_fractional_digits: i64 = max_fractional_digits.try_into().unwrap_or(2);
-        if b.fractional_digit_count() <= max_fractional_digits {
-            let fractional_digit_count: usize = b.fractional_digit_count().try_into().unwrap_or(2);
-            format!("${:.fractional_digit_count$}", b)
-        } else {
-            let max_fractional_digits: usize = max_fractional_digits.try_into().unwrap_or(2);
-            format!("${:.max_fractional_digits$}", b)
-        }
+        format!("${:.max_fractional_digits$}", b)
     }
 
     /// Format a datetime as YYYY-MM-DD.
@@ -42,8 +35,12 @@ mod filters {
 
     /// Format a BigDecimal as a US-style dollar amount.
     #[askama::filter_fn]
-    pub fn pretty_price(b: BigDecimal, _env: &dyn askama::Values) -> askama::Result<String> {
-        Ok(pretty_price_helper(b))
+    pub fn pretty_price(
+        b: BigDecimal,
+        _env: &dyn askama::Values,
+        max_fractional_digits: usize,
+    ) -> askama::Result<String> {
+        Ok(pretty_price_helper(b, max_fractional_digits))
     }
 }
 
@@ -74,7 +71,7 @@ mod tests {
     #[test]
     fn test_pretty_price() {
         let b = BigDecimal::from_str("19.99").unwrap();
-        assert_eq!(filters::pretty_price_helper(b), "$19.99");
+        assert_eq!(filters::pretty_price_helper(b, 2), "$19.99");
     }
 
     #[test]
