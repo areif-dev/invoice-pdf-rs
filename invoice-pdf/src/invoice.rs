@@ -67,6 +67,7 @@ pub struct LineItem {
         serialize_with = "serialize_bigdecimal",
         deserialize_with = "deserialize_price"
     )]
+    #[builder(setter(custom))]
     price: BigDecimal,
 }
 
@@ -128,6 +129,17 @@ pub struct Invoice {
     acct_id: Option<String>,
     #[builder(default)]
     purchase_order: Option<String>,
+}
+
+impl LineItemBuilder {
+    pub fn price(self, p: impl Into<BigDecimal>) -> Self {
+        let p: BigDecimal = p.into();
+        let price = p.with_scale_round(3, bigdecimal::RoundingMode::HalfEven);
+        Self {
+            price: Some(price),
+            ..self
+        }
+    }
 }
 
 impl LineItem {
