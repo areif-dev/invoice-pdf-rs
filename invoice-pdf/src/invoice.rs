@@ -28,6 +28,15 @@ where
     serializer.serialize_str(&value.to_rfc3339())
 }
 
+fn deserialize_price<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    let d = BigDecimal::from_str(&s).map_err(serde::de::Error::custom)?;
+    Ok(d.with_scale_round(3, bigdecimal::RoundingMode::Up))
+}
+
 fn deserialize_bigdecimal<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
 where
     D: Deserializer<'de>,
@@ -56,7 +65,7 @@ pub struct LineItem {
     gtin: Option<Gtin>,
     #[serde(
         serialize_with = "serialize_bigdecimal",
-        deserialize_with = "deserialize_bigdecimal"
+        deserialize_with = "deserialize_price"
     )]
     price: BigDecimal,
 }
@@ -398,6 +407,35 @@ mod tests {
     }
 
     #[test]
+    fn test_deserialize_price() {
+        #[derive(Deserialize)]
+        struct Wrap {
+            #[serde(deserialize_with = "super::deserialize_price")]
+            bd: BigDecimal,
+        }
+
+        let val = serde_json::json!({"bd": "12.121"});
+        let w: Wrap = serde_json::from_value(val).unwrap();
+        assert_eq!(&w.bd.to_string(), "12.121");
+
+        let val = serde_json::json!({"bd": "12.129"});
+        let w: Wrap = serde_json::from_value(val).unwrap();
+        assert_eq!(&w.bd.to_string(), "12.129");
+
+        let val = serde_json::json!({"bd": "12.1299"});
+        let w: Wrap = serde_json::from_value(val).unwrap();
+        assert_eq!(&w.bd.to_string(), "12.130");
+
+        let val = serde_json::json!({"bd": "12.1291"});
+        let w: Wrap = serde_json::from_value(val).unwrap();
+        assert_eq!(&w.bd.to_string(), "12.130");
+
+        let val = serde_json::json!({"bd": "12.1295"});
+        let w: Wrap = serde_json::from_value(val).unwrap();
+        assert_eq!(&w.bd.to_string(), "12.130");
+    }
+
+    #[test]
     fn test_deserialize_bigdecimal() {
         #[derive(Deserialize)]
         struct Wrap {
@@ -406,7 +444,8 @@ mod tests {
         }
 
         let val = serde_json::json!({"bd": "12.50"});
-        let _: Wrap = serde_json::from_value(val).unwrap();
+        let w: Wrap = serde_json::from_value(val).unwrap();
+        assert_eq!(&w.bd.to_string(), "12.50");
         let val = serde_json::json!({"bd": "reee"});
         let x = serde_json::from_value::<Wrap>(val);
         assert!(x.is_err())
