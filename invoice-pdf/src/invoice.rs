@@ -34,7 +34,7 @@ where
 {
     let s = String::deserialize(deserializer)?;
     let d = BigDecimal::from_str(&s).map_err(serde::de::Error::custom)?;
-    Ok(d.with_scale_round(3, bigdecimal::RoundingMode::Up))
+    Ok(price_from_bigdecimal(&d))
 }
 
 fn deserialize_bigdecimal<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
@@ -51,6 +51,10 @@ where
 {
     let s = String::deserialize(deserializer)?;
     DateTime::parse_from_rfc3339(&s).map_err(serde::de::Error::custom)
+}
+
+fn price_from_bigdecimal(bd: &BigDecimal) -> BigDecimal {
+    bd.with_scale_round(3, bigdecimal::RoundingMode::Up)
 }
 
 /// A single invoice line item encoding information such as stock keeping unit, title, quantity,
@@ -134,7 +138,7 @@ pub struct Invoice {
 impl LineItemBuilder {
     pub fn price(self, p: impl Into<BigDecimal>) -> Self {
         let p: BigDecimal = p.into();
-        let price = p.with_scale_round(3, bigdecimal::RoundingMode::HalfEven);
+        let price = price_from_bigdecimal(&p);
         Self {
             price: Some(price),
             ..self
