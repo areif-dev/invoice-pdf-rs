@@ -127,7 +127,7 @@ pub struct Invoice {
         serialize_with = "serialize_bigdecimal",
         deserialize_with = "deserialize_bigdecimal"
     )]
-    #[builder(default = BigDecimal::from(0))]
+    #[builder(default = BigDecimal::from(0), setter(custom))]
     paid: BigDecimal,
     #[builder(default)]
     acct_id: Option<String>,
@@ -393,6 +393,15 @@ impl InvoiceBuilder {
                 line_items: Some(vec![line]),
                 ..self
             },
+        }
+    }
+
+    pub fn paid(self, p: impl Into<BigDecimal>) -> Self {
+        let p: BigDecimal = p.into();
+        let price = p.with_scale_round(2, bigdecimal::RoundingMode::Down);
+        Self {
+            paid: Some(price),
+            ..self
         }
     }
 }
