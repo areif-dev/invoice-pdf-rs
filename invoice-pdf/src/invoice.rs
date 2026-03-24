@@ -425,6 +425,16 @@ mod tests {
             .unwrap()
     }
 
+    fn make_line_item(qty: i32, price: &str) -> LineItem {
+        LineItemBuilder::default()
+            .sku("test")
+            .title("test")
+            .quantity(qty)
+            .price(price.parse::<BigDecimal>().unwrap())
+            .build()
+            .unwrap()
+    }
+
     // Helper to create a minimal valid Party using the builder
     fn make_party(name: &str) -> Party {
         PartyBuilder::default().name(name).build().unwrap()
@@ -718,5 +728,45 @@ mod tests {
             .logo(PathBuf::from("./logo.png"))
             .build()
             .unwrap();
+    }
+
+    #[test]
+    fn test_invoice_math() {
+        let sender = make_party("sender");
+        let receiver = make_party("receiver");
+        let line_items = vec![
+            make_line_item(1, "9.123"),
+            make_line_item(168, "9.1231"),
+            make_line_item(22, "10"),
+            make_line_item(3, "10.001"),
+            make_line_item(3, "-18.4441"),
+        ];
+        let expected = vec![
+            ("9.123", "9.12"),
+            ("9.124", "1532.83"),
+            ("10.000", "220.00"),
+            ("10.001", "30.00"),
+            ("-18.445", "-55.34"),
+        ];
+        let expected: Vec<_> = expected
+            .iter()
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .collect();
+        let actual: Vec<_> = line_items
+            .iter()
+            .map(|l| (l.price().to_string(), l.total().to_string()))
+            .collect();
+        assert_eq!(expected, actual);
+        let invoice = InvoiceBuilder::default()
+            .line_items(line_items)
+            .sender(sender)
+            .receiver(receiver)
+            .id("1")
+            .paid("16.999".parse::<BigDecimal>().unwrap())
+            .build()
+            .unwrap();
+        assert_eq!(&invoice.paid().to_string(), "16.99");
+        assert_eq!(&invoice.total().to_string(), "1736.61");
+        assert_eq!(&invoice.net_due().to_string(), "1719.62");
     }
 }
