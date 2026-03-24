@@ -165,7 +165,7 @@ impl LineItem {
 
     /// Return the computed total for this line item equal to `quantity * price`
     pub fn total(&self) -> BigDecimal {
-        &self.price * self.quantity
+        (&self.price * self.quantity).with_scale_round(2, bigdecimal::RoundingMode::HalfEven)
     }
 
     /// Return this line item's barcode/upc/gtin, if it exists
@@ -208,8 +208,7 @@ impl Invoice {
     /// assert_eq!(inv.net_due(), BigDecimal::from(0));
     /// ```
     pub fn net_due(&self) -> BigDecimal {
-        let line_item_total: BigDecimal =
-            self.line_items.iter().map(|l| l.quantity * &l.price).sum();
+        let line_item_total: BigDecimal = self.line_items.iter().map(LineItem::total).sum();
         line_item_total - &self.paid
     }
 
@@ -250,7 +249,7 @@ impl Invoice {
     ///
     /// ```
     pub fn total(&self) -> BigDecimal {
-        self.line_items.iter().map(|l| l.quantity * &l.price).sum()
+        self.line_items.iter().map(LineItem::total).sum()
     }
 
     /// Return a copy of this [`Invoice`]'s id
