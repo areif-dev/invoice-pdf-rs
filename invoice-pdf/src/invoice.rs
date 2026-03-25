@@ -28,21 +28,22 @@ where
     serializer.serialize_str(&value.to_rfc3339())
 }
 
-fn deserialize_price<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
+fn deserialize_scale3<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
     let d = BigDecimal::from_str(&s).map_err(serde::de::Error::custom)?;
-    Ok(price_from_bigdecimal(&d))
+    Ok(scale3_from_bigdecimal(&d))
 }
 
-fn deserialize_bigdecimal<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
+fn deserialize_scale2<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    BigDecimal::from_str(&s).map_err(serde::de::Error::custom)
+    let d = BigDecimal::from_str(&s).map_err(serde::de::Error::custom)?;
+    Ok(scale2_from_bigdecimal(&d))
 }
 
 fn deserialize_datetime<'de, D>(deserializer: D) -> Result<DateTime<FixedOffset>, D::Error>
@@ -53,8 +54,12 @@ where
     DateTime::parse_from_rfc3339(&s).map_err(serde::de::Error::custom)
 }
 
-fn price_from_bigdecimal(bd: &BigDecimal) -> BigDecimal {
+fn scale3_from_bigdecimal(bd: &BigDecimal) -> BigDecimal {
     bd.with_scale_round(3, bigdecimal::RoundingMode::Up)
+}
+
+fn scale2_from_bigdecimal(bd: &BigDecimal) -> BigDecimal {
+    bd.with_scale_round(2, bigdecimal::RoundingMode::HalfEven)
 }
 
 /// A single invoice line item encoding information such as stock keeping unit, title, quantity,
@@ -69,7 +74,7 @@ pub struct LineItem {
     gtin: Option<Gtin>,
     #[serde(
         serialize_with = "serialize_bigdecimal",
-        deserialize_with = "deserialize_price"
+        deserialize_with = "deserialize_scale3"
     )]
     #[builder(setter(custom))]
     price: BigDecimal,
@@ -125,7 +130,7 @@ pub struct Invoice {
     line_items: Vec<LineItem>,
     #[serde(
         serialize_with = "serialize_bigdecimal",
-        deserialize_with = "deserialize_bigdecimal"
+        deserialize_with = "deserialize_scale2"
     )]
     #[builder(default = BigDecimal::from(0), setter(custom))]
     paid: BigDecimal,
@@ -138,7 +143,7 @@ pub struct Invoice {
 impl LineItemBuilder {
     pub fn price(self, p: impl Into<BigDecimal>) -> Self {
         let p: BigDecimal = p.into();
-        let price = price_from_bigdecimal(&p);
+        let price = scale3_from_bigdecimal(&p);
         Self {
             price: Some(price),
             ..self
@@ -398,7 +403,7 @@ impl InvoiceBuilder {
 
     pub fn paid(self, p: impl Into<BigDecimal>) -> Self {
         let p: BigDecimal = p.into();
-        let price = p.with_scale_round(2, bigdecimal::RoundingMode::Down);
+        let price = scale2_from_bigdecimal(&p);
         Self {
             paid: Some(price),
             ..self
@@ -444,7 +449,7 @@ mod tests {
     fn test_deserialize_price() {
         #[derive(Deserialize)]
         struct Wrap {
-            #[serde(deserialize_with = "super::deserialize_price")]
+            #[serde(deserialize_with = "super::deserialize_scale3")]
             bd: BigDecimal,
         }
 
@@ -470,10 +475,10 @@ mod tests {
     }
 
     #[test]
-    fn test_deserialize_bigdecimal() {
+    fn test_deserialize_scale2() {
         #[derive(Deserialize)]
         struct Wrap {
-            #[serde(deserialize_with = "super::deserialize_bigdecimal")]
+            #[serde(deserialize_with = "super::deserialize_scale2")]
             bd: BigDecimal,
         }
 
@@ -482,7 +487,19 @@ mod tests {
         assert_eq!(&w.bd.to_string(), "12.50");
         let val = serde_json::json!({"bd": "reee"});
         let x = serde_json::from_value::<Wrap>(val);
-        assert!(x.is_err())
+        assert!(x.is_err());
+
+        let val = serde_json::json!({"bd": "1.995"});
+        let w: Wrap = serde_json::from_value(val).unwrap();
+        assert_eq!(&w.bd.to_string(), "2.00");
+
+        let val = serde_json::json!({"bd": "-1.995"});
+        let w: Wrap = serde_json::from_value(val).unwrap();
+        assert_eq!(&w.bd.to_string(), "-2.00");
+
+        let val = serde_json::json!({"bd": "5.001"});
+        let w: Wrap = serde_json::from_value(val).unwrap();
+        assert_eq!(&w.bd.to_string(), "5.00");
     }
 
     #[test]
@@ -765,8 +782,8 @@ mod tests {
             .paid("16.999".parse::<BigDecimal>().unwrap())
             .build()
             .unwrap();
-        assert_eq!(&invoice.paid().to_string(), "16.99");
+        assert_eq!(&invoice.paid().to_string(), "17.00");
         assert_eq!(&invoice.total().to_string(), "1736.61");
-        assert_eq!(&invoice.net_due().to_string(), "1719.62");
+        assert_eq!(&invoice.net_due().to_string(), "1719.61");
     }
 }
