@@ -82,39 +82,41 @@
   <section class="page">
     <section class="header">
       <div class="header-left">
-        {% if let Some(logo) = invoice.logo() %}
-          <img class="logo" src="{{ logo.display() }}" alt="Logo">
-        {% endif %}
+        <div class="logo">
+          {% if let Some(logo) = invoice.logo() %}
+          <img src="{{ logo.display() }}" alt="Logo">
+          {% endif %}
+        </div>
         <address class="address">
           <strong>{{ invoice.sender().name() }}</strong><br>
           {% if let Some(address) = invoice.sender().address() %}
-            {{ address.line1() }}<br>
-            {% if let Some(line2) = address.line2() %}
-              {{ line2 }}<br>
-            {% endif %}
-            {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
+          {{ address.line1() }}<br>
+          {% if let Some(line2) = address.line2() %}
+          {{ line2 }}<br>
+          {% endif %}
+          {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
           {% endif %}
           {% if let Some(phone) = invoice.sender().phone() %}
-            {{ phone }}<br>
+          {{ phone }}<br>
           {% endif %}
           {% if let Some(email) = invoice.sender().email() %}
-            {{ email }}<br>
+          {{ email }}<br>
           {% endif %}
         </address>
         <address class="address">
           <strong>{{ invoice.receiver().name() }}</strong><br>
           {% if let Some(address) = invoice.receiver().address() %}
-            {{ address.line1() }}<br>
-            {% if let Some(line2) = address.line2() %}
-              {{ line2 }}<br>
-            {% endif %}
-            {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
+          {{ address.line1() }}<br>
+          {% if let Some(line2) = address.line2() %}
+          {{ line2 }}<br>
+          {% endif %}
+          {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
           {% endif %}
           {% if let Some(phone) = invoice.receiver().phone() %}
-            {{ phone }}<br>
+          {{ phone }}<br>
           {% endif %}
           {% if let Some(email) = invoice.receiver().email() %}
-            {{ email }}<br>
+          {{ email }}<br>
           {% endif %}
         </address>
       </div>

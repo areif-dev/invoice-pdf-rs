@@ -4,7 +4,7 @@
 - [x] don't format unit price to 2 decimals. Only format line item totals
     - [ ] change pretty_print to allow for custom decimal place precision
 - [ ] add option to autogenerate logo based on the sender's initials
-- [ ] make sure bill to line still lines up when no logo is included
+- [x] make sure bill to line still lines up when no logo is included
 - [ ] switch to askama for templating
 - [ ] try killing chromedriver if the port is already being used
 - [ ] make sure that deserializing the paid field scales to 2 decimal places
