@@ -83,8 +83,8 @@
     <section class="header">
       <div class="header-left">
         <div class="logo">
-          {% if let Some(logo) = invoice.logo() %}
-          <img src="{{ logo.display() }}" alt="Logo">
+          {% if let Some(logo_uri) = self.logo_data_uri() %}
+          <img class="logo" src="{{ logo_uri }}" alt="Logo">
           {% endif %}
         </div>
         <address class="address">

@@ -6,6 +6,7 @@
 //! render an Invoice into HTML using the askama template engine.
 
 use askama::Template;
+use base64::{engine::general_purpose, Engine};
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, FixedOffset};
 
@@ -48,6 +49,34 @@ mod filters {
 #[template(path = "base.html")]
 pub struct InvoiceTemplate<'a> {
     pub invoice: &'a Invoice,
+}
+
+impl<'a> InvoiceTemplate<'a> {
+    /// Returns the logo as a base64 encoded data URI if it exists.
+    pub fn logo_data_uri(&self) -> Option<String> {
+        let path = self.invoice.logo().as_ref()?;
+        let data = std::fs::read(path).ok()?;
+        let encoded = general_purpose::STANDARD.encode(&data);
+        let extension = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("png")
+            .to_lowercase();
+
+        let mime_type = match extension.as_str() {
+            "png" => "image/png",
+            "jpg" | "jpeg" => "image/jpeg",
+            "gif" => "image/gif",
+            "bmp" => "image/bmp",
+            "ico" => "image/x-icon",
+            "svg" => "image/svg+xml",
+            "webp" => "image/webp",
+            "tiff" | "tif" => "image/tiff",
+            _ => "image/png",
+        };
+
+        Some(format!("data:{};base64,{}", mime_type, encoded))
+    }
 }
 
 #[cfg(test)]
