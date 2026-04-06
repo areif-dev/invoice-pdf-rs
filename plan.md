@@ -8,3 +8,4 @@
 - [x] switch to askama for templating
 - [ ] try killing chromedriver if the port is already being used
 - [x] make sure that deserializing the paid field scales to 2 decimal places
+- [x] lower line item top by 4mm.
