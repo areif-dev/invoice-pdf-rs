@@ -22,6 +22,10 @@ pub struct Cli {
     /// Path to the directory where PDF outputs should be saved
     #[arg(short, long)]
     pub out: Option<PathBuf>,
+
+    /// If set, also saves an html version of the invoice to ./{invoice_id}.html
+    #[arg(short = 'D', long)]
+    pub debug: bool,
 }
 
 impl Cli {

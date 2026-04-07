@@ -67,6 +67,11 @@ async fn main() -> Result<(), invoice_pdf::Error> {
         })
         .add_context("deserializing invoices from cli")?;
     for invoice in invoices {
+        if cli.debug {
+            std::fs::write(format!("{}.html", invoice.id()), invoice.render_html()?)
+                .map_err(invoice_pdf::Error::from)
+                .add_context(&format!("writing {}.html to disk", invoice.id()))?;
+        }
         write_invoice_pdf(&invoice, &cli).await?;
     }
     kill_chrome(&mut chrome_process)?;
