@@ -51,7 +51,6 @@ use std::{
     time::Duration,
 };
 
-use askama::Template;
 use base64::{Engine, engine::general_purpose};
 pub use error::Error;
 pub use invoice::{
@@ -65,7 +64,6 @@ use fantoccini::{
     wd::{PrintConfigurationBuilder, PrintMargins, PrintSize},
 };
 use serde_json::Map;
-use template_env::InvoiceTemplate;
 
 /// Starts ChromeDriver as a child process on port 4444
 ///
@@ -218,11 +216,7 @@ pub async fn generate_pdf(invoice: &Invoice) -> Result<Vec<u8>, crate::Error> {
         .map_err(crate::Error::from)
         .add_context("connecting to client")
         .add_context("generating pdf")?;
-    let render = InvoiceTemplate { invoice }
-        .render()
-        .map_err(crate::Error::from)
-        .add_context("rendering html template")
-        .add_context("generating pdf")?;
+    let render = invoice.render_html().add_context("generating pdf")?;
     let encoded = general_purpose::STANDARD.encode(render.as_bytes());
     let data_url = format!("data:text/html;base64,{encoded}");
     client

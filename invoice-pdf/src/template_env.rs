@@ -6,7 +6,7 @@
 //! render an Invoice into HTML using the askama template engine.
 
 use askama::Template;
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, FixedOffset};
 

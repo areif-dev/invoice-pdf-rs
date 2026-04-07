@@ -8,11 +8,14 @@
 
 use std::{path::PathBuf, str::FromStr};
 
+use askama::Template;
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, FixedOffset, Local};
 use derive_builder::Builder;
 use gtin::Gtin;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+use crate::{error::AddContext, template_env::InvoiceTemplate};
 
 fn serialize_bigdecimal<S>(value: &BigDecimal, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -261,6 +264,14 @@ impl Invoice {
     /// ```
     pub fn total(&self) -> BigDecimal {
         self.line_items.iter().map(LineItem::total).sum()
+    }
+
+    /// Convert this invoice into an HTML string based on templates/base.html
+    pub fn render_html(&self) -> Result<String, crate::Error> {
+        InvoiceTemplate { invoice: self }
+            .render()
+            .map_err(crate::Error::from)
+            .add_context(&format!("rendering html for invoice {}", self.id))
     }
 
     /// Return a copy of this [`Invoice`]'s id
