@@ -95,7 +95,7 @@ fn scale2_from_bigdecimal(bd: &BigDecimal) -> BigDecimal {
 
 /// A single invoice line item encoding information such as stock keeping unit, title, quantity,
 /// and unit price.
-#[derive(Debug, Builder, Serialize, Deserialize)]
+#[derive(Debug, Builder, Serialize, Deserialize, Clone)]
 #[builder(setter(strip_option, into), pattern = "owned")]
 pub struct LineItem {
     sku: String,
