@@ -74,6 +74,12 @@
       padding-top: 0;
       border: none;
     }
+
+    .recipients {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+    }
   </style>
 </head>
 
@@ -86,38 +92,6 @@
           <img class="logo" src="{{ logo_uri }}" alt="Logo">
           {% endif %}
         </div>
-        <address class="address">
-          <strong>{{ invoice.sender().name() }}</strong><br>
-          {% if let Some(address) = invoice.sender().address() %}
-          {{ address.line1() }}<br>
-          {% if let Some(line2) = address.line2() %}
-          {{ line2 }}<br>
-          {% endif %}
-          {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
-          {% endif %}
-          {% if let Some(phone) = invoice.sender().phone() %}
-          {{ phone }}<br>
-          {% endif %}
-          {% if let Some(email) = invoice.sender().email() %}
-          {{ email }}<br>
-          {% endif %}
-        </address>
-        <address class="address">
-          <strong>{{ invoice.receiver().name() }}</strong><br>
-          {% if let Some(address) = invoice.receiver().address() %}
-          {{ address.line1() }}<br>
-          {% if let Some(line2) = address.line2() %}
-          {{ line2 }}<br>
-          {% endif %}
-          {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
-          {% endif %}
-          {% if let Some(phone) = invoice.receiver().phone() %}
-          {{ phone }}<br>
-          {% endif %}
-          {% if let Some(email) = invoice.receiver().email() %}
-          {{ email }}<br>
-          {% endif %}
-        </address>
       </div>
       <div class="invoice-meta">
         <table style="border: none;">
@@ -148,6 +122,77 @@
         </table>
       </div>
     </section>
+    <address class="address">
+      <strong>Remit to:</strong><br>
+      {{ invoice.sender().name() }}<br>
+      {% if let Some(address) = invoice.sender().address() %}
+      {{ address.line1() }}<br>
+      {% if let Some(line2) = address.line2() %}
+      {{ line2 }}<br>
+      {% endif %}
+      {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
+      {% endif %}
+      {% if let Some(phone) = invoice.sender().phone() %}
+      {{ phone }}<br>
+      {% endif %}
+      {% if let Some(email) = invoice.sender().email() %}
+      {{ email }}<br>
+      {% endif %}
+    </address>
+    <section class="recipients">
+      <address class="address">
+        <strong>Bill to:</strong><br>
+        {{ invoice.bill_to().name() }}<br>
+        {% if let Some(address) = invoice.bill_to().address() %}
+        {{ address.line1() }}<br>
+        {% if let Some(line2) = address.line2() %}
+        {{ line2 }}<br>
+        {% endif %}
+        {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
+        {% endif %}
+        {% if let Some(phone) = invoice.bill_to().phone() %}
+        {{ phone }}<br>
+        {% endif %}
+        {% if let Some(email) = invoice.bill_to().email() %}
+        {{ email }}<br>
+        {% endif %}
+      </address>
+      <address class="address">
+        <strong>Ship to:</strong><br>
+        {% if let Some(ship_to) = invoice.ship_to() %}
+        {{ ship_to.name() }}<br>
+        {% if let Some(address) = ship_to.address() %}
+        {{ address.line1() }}<br>
+        {% if let Some(line2) = address.line2() %}
+        {{ line2 }}<br>
+        {% endif %}
+        {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
+        {% endif %}
+        {% if let Some(phone) = ship_to.phone() %}
+        {{ phone }}<br>
+        {% endif %}
+        {% if let Some(email) = ship_to.email() %}
+        {{ email }}<br>
+        {% endif %}
+        {% else %}
+        {{ invoice.bill_to().name() }}<br>
+        {% if let Some(address) = invoice.bill_to().address() %}
+        {{ address.line1() }}<br>
+        {% if let Some(line2) = address.line2() %}
+        {{ line2 }}<br>
+        {% endif %}
+        {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
+        {% endif %}
+        {% if let Some(phone) = invoice.bill_to().phone() %}
+        {{ phone }}<br>
+        {% endif %}
+        {% if let Some(email) = invoice.bill_to().email() %}
+        {{ email }}<br>
+        {% endif %}
+        {% endif %}
+      </address>
+    </section>
+  </section>
 
     <table>
       <thead>
