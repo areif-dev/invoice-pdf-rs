@@ -35,8 +35,22 @@ fn deserialize_scale3<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer)?;
-    let d = BigDecimal::from_str(&s).map_err(serde::de::Error::custom)?;
+    let v = serde_json::Value::deserialize(deserializer)?;
+    let d = match v {
+        serde_json::Value::String(s) => {
+            BigDecimal::from_str(&s).map_err(serde::de::Error::custom)?
+        }
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                BigDecimal::from(i)
+            } else if let Some(f) = n.as_f64() {
+                BigDecimal::try_from(f).map_err(serde::de::Error::custom)?
+            } else {
+                return Err(serde::de::Error::custom("invalid number"));
+            }
+        }
+        _ => return Err(serde::de::Error::custom("expected string or number")),
+    };
     Ok(scale3_from_bigdecimal(&d))
 }
 
@@ -44,8 +58,22 @@ fn deserialize_scale2<'de, D>(deserializer: D) -> Result<BigDecimal, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer)?;
-    let d = BigDecimal::from_str(&s).map_err(serde::de::Error::custom)?;
+    let v = serde_json::Value::deserialize(deserializer)?;
+    let d = match v {
+        serde_json::Value::String(s) => {
+            BigDecimal::from_str(&s).map_err(serde::de::Error::custom)?
+        }
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                BigDecimal::from(i)
+            } else if let Some(f) = n.as_f64() {
+                BigDecimal::try_from(f).map_err(serde::de::Error::custom)?
+            } else {
+                return Err(serde::de::Error::custom("invalid number"));
+            }
+        }
+        _ => return Err(serde::de::Error::custom("expected string or number")),
+    };
     Ok(scale2_from_bigdecimal(&d))
 }
 
@@ -72,7 +100,12 @@ fn scale2_from_bigdecimal(bd: &BigDecimal) -> BigDecimal {
 pub struct LineItem {
     sku: String,
     title: String,
-    quantity: i32,
+    #[serde(
+        serialize_with = "serialize_bigdecimal",
+        deserialize_with = "deserialize_scale2"
+    )]
+    #[builder(setter(custom))]
+    quantity: BigDecimal,
     #[builder(setter(into), default)]
     gtin: Option<Gtin>,
     #[serde(
@@ -154,6 +187,15 @@ impl LineItemBuilder {
             ..self
         }
     }
+
+    pub fn quantity(self, q: impl Into<BigDecimal>) -> Self {
+        let q: BigDecimal = q.into();
+        let quantity = scale2_from_bigdecimal(&q);
+        Self {
+            quantity: Some(quantity),
+            ..self
+        }
+    }
 }
 
 impl LineItem {
@@ -163,8 +205,8 @@ impl LineItem {
     }
 
     /// Return the quantity for this line item.
-    pub fn quantity(&self) -> i32 {
-        self.quantity
+    pub fn quantity(&self) -> BigDecimal {
+        self.quantity.clone()
     }
 
     /// Return the title for this line item.
@@ -179,7 +221,7 @@ impl LineItem {
 
     /// Return the computed total for this line item equal to `quantity * price`
     pub fn total(&self) -> BigDecimal {
-        (&self.price * self.quantity).with_scale_round(2, bigdecimal::RoundingMode::HalfEven)
+        (&self.price * &self.quantity).with_scale_round(2, bigdecimal::RoundingMode::HalfEven)
     }
 
     /// Return this line item's barcode/upc/gtin, if it exists
@@ -439,7 +481,7 @@ mod tests {
     use std::path::PathBuf;
     use std::str::FromStr;
 
-    fn make_line_item(qty: i32, price: &str) -> LineItem {
+    fn make_line_item(qty: impl Into<BigDecimal>, price: &str) -> LineItem {
         LineItemBuilder::default()
             .sku("test")
             .title("test")
@@ -557,6 +599,21 @@ mod tests {
     }
 
     #[test]
+    fn test_fractional_quantity() {
+        let price = BigDecimal::from_str("10.00").unwrap();
+        let item = LineItemBuilder::default()
+            .sku("TEST")
+            .title("Fractional Test")
+            .quantity(BigDecimal::from_str("1.5").unwrap())
+            .price(price)
+            .build()
+            .unwrap();
+
+        assert_eq!(item.quantity().to_string(), "1.50");
+        assert_eq!(item.total().to_string(), "15.00");
+    }
+
+    #[test]
     fn line_item_builder_success_and_accessors() {
         let price = BigDecimal::from_str("9.50").unwrap();
         let item = LineItemBuilder::default()
@@ -569,7 +626,7 @@ mod tests {
             .unwrap();
 
         // Check accessors
-        assert_eq!(item.quantity(), 2);
+        assert_eq!(item.quantity(), BigDecimal::from(2));
         assert_eq!(&item.title(), "Gadget");
         assert_eq!(&item.sku(), "ABC123");
         assert_eq!(item.price(), price);
@@ -766,6 +823,7 @@ mod tests {
             make_line_item(22, "10"),
             make_line_item(3, "10.001"),
             make_line_item(3, "-18.4441"),
+            make_line_item(BigDecimal::try_from(3.75).unwrap(), "10.03"),
         ];
         let expected = vec![
             ("9.123", "9.12"),
@@ -773,6 +831,7 @@ mod tests {
             ("10.000", "220.00"),
             ("10.001", "30.00"),
             ("-18.445", "-55.34"),
+            ("10.030", "37.61"),
         ];
         let expected: Vec<_> = expected
             .iter()
@@ -792,7 +851,7 @@ mod tests {
             .build()
             .unwrap();
         assert_eq!(&invoice.paid().to_string(), "17.00");
-        assert_eq!(&invoice.total().to_string(), "1736.61");
-        assert_eq!(&invoice.net_due().to_string(), "1719.61");
+        assert_eq!(&invoice.total().to_string(), "1774.22");
+        assert_eq!(&invoice.net_due().to_string(), "1757.22");
     }
 }
