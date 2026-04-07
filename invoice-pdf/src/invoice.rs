@@ -428,17 +428,6 @@ mod tests {
     use std::path::PathBuf;
     use std::str::FromStr;
 
-    // Helper to create a minimal valid Address using the builder
-    fn make_address() -> Address {
-        AddressBuilder::default()
-            .line1("1 street st")
-            .city("City")
-            .province_code("PR")
-            .postal_code("POST")
-            .build()
-            .unwrap()
-    }
-
     fn make_line_item(qty: i32, price: &str) -> LineItem {
         LineItemBuilder::default()
             .sku("test")
