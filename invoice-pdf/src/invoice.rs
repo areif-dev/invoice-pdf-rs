@@ -122,7 +122,9 @@ pub struct Invoice {
     )]
     #[builder(default = Local::now().into())]
     net_due_datetime: DateTime<FixedOffset>,
-    receiver: Party,
+    bill_to: Party,
+    #[builder(default)]
+    ship_to: Option<Party>,
     sender: Party,
     #[builder(default)]
     logo: Option<PathBuf>,
@@ -197,7 +199,7 @@ impl Invoice {
     /// let inv = InvoiceBuilder::default()
     ///     .id("1")
     ///     .logo("./logo.png")
-    ///     .receiver(
+    ///     .bill_to(
     ///         PartyBuilder::default()
     ///             .name("A")
     ///             .build().unwrap())
@@ -236,7 +238,7 @@ impl Invoice {
     ///
     /// let inv = InvoiceBuilder::default()
     ///     .id("1")
-    ///     .receiver(
+    ///     .bill_to(
     ///         PartyBuilder::default()
     ///             .name("A")
     ///             .build().unwrap())
@@ -281,9 +283,16 @@ impl Invoice {
         &self.net_due_datetime
     }
 
-    /// Get the information for the receiver of the invoice
-    pub fn receiver(&self) -> &Party {
-        &self.receiver
+    /// Get the information for party being billed for the invoice. This may not be the same as
+    /// ship_to()
+    pub fn bill_to(&self) -> &Party {
+        &self.bill_to
+    }
+
+    /// Get the information for the party the goods or services are being shipped to. This may not
+    /// be the same as bill_to()
+    pub fn ship_to(&self) -> &Option<Party> {
+        &self.ship_to
     }
 
     /// Get the information for the sender of the invoice
@@ -679,7 +688,7 @@ mod tests {
         let inv = InvoiceBuilder::default()
             .id("inv-1")
             // intentionally omit created_datetime and net_due_datetime to use defaults
-            .receiver(make_party("Receiver"))
+            .bill_to(make_party("Receiver"))
             .sender(make_party("Sender"))
             .logo(logo.clone())
             .add_line(item1)
@@ -715,7 +724,7 @@ mod tests {
     fn invoice_builder_missing_required_fields_fails() {
         // missing id
         let _ = InvoiceBuilder::default()
-            .receiver(make_party("R"))
+            .bill_to(make_party("R"))
             .sender(make_party("S"))
             .logo(PathBuf::from("./logo.png"))
             .build()
@@ -732,7 +741,7 @@ mod tests {
         // missing sender
         let _ = InvoiceBuilder::default()
             .id("1")
-            .receiver(make_party("R"))
+            .bill_to(make_party("R"))
             .logo(PathBuf::from("./logo.png"))
             .build()
             .unwrap_err();
@@ -740,7 +749,7 @@ mod tests {
         // Missing UPC, which is not required, so it should work
         let _ = InvoiceBuilder::default()
             .id("1")
-            .receiver(make_party("R"))
+            .bill_to(make_party("R"))
             .sender(make_party("S"))
             .logo(PathBuf::from("./logo.png"))
             .build()
@@ -777,7 +786,7 @@ mod tests {
         let invoice = InvoiceBuilder::default()
             .line_items(line_items)
             .sender(sender)
-            .receiver(receiver)
+            .bill_to(receiver)
             .id("1")
             .paid("16.999".parse::<BigDecimal>().unwrap())
             .build()

@@ -12,7 +12,7 @@
 //! let inv = InvoiceBuilder::default()
 //!     .id("1")
 //!     .logo("./logo.png")
-//!     .receiver(
+//!     .bill_to(
 //!         PartyBuilder::default()
 //!             .name("A")
 //!             .address(
@@ -185,7 +185,7 @@ async fn connect_to_client() -> Result<Client, fantoccini::error::NewSessionErro
 /// let inv = InvoiceBuilder::default()
 ///     .id("1")
 ///     .logo("./logo.png")
-///     .receiver(
+///     .bill_to(
 ///         PartyBuilder::default()
 ///             .name("A")
 ///             .address(
@@ -269,7 +269,7 @@ mod tests {
         let inv = InvoiceBuilder::default()
             .id("test-inv")
             .sender(PartyBuilder::default().name("sender").build().unwrap())
-            .receiver(PartyBuilder::default().name("receiver").build().unwrap())
+            .bill_to(PartyBuilder::default().name("bill_to").build().unwrap())
             .add_line(
                 LineItemBuilder::default()
                     .sku("test")

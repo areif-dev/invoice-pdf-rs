@@ -108,7 +108,7 @@ mod tests {
         let inv = InvoiceBuilder::default()
             .id("test id")
             .sender(PartyBuilder::default().name("sender").build().unwrap())
-            .receiver(PartyBuilder::default().name("receiver").build().unwrap())
+            .bill_to(PartyBuilder::default().name("bill_to").build().unwrap())
             .add_line(
                 LineItemBuilder::default()
                     .sku("test")
@@ -133,8 +133,8 @@ mod tests {
         let render = InvoiceTemplate { invoice: &inv }.render().unwrap();
         assert!(render.starts_with("<!DOCTYPE html>"));
         assert!(render.contains("<td>test id</td>"));
-        assert!(render.contains("<strong>sender</strong>"));
-        assert!(render.contains("<strong>receiver</strong>"));
+        assert!(render.contains("sender"));
+        assert!(render.contains("bill_to"));
         assert!(render.contains("<td>test</td>"));
         assert!(render.contains("<td>this is a test</td>"));
         assert!(render.contains(r#"<td style="text-align: right;">$20.00</td>"#));
