@@ -11,3 +11,4 @@
 - [x] lower line item top by 4mm.
 - [ ] add remarks and ability to parse from abc to line items 
 - [x] add bill to and ship to parties 
+- [ ] allow non integer line item quantities

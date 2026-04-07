@@ -880,7 +880,7 @@ dependencies = [
 
 [[package]]
 name = "invoice-pdf"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "askama",
  "base64",
@@ -896,7 +896,7 @@ dependencies = [
 
 [[package]]
 name = "invoice-pdf-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "invoice-pdf",
