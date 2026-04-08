@@ -29,7 +29,7 @@
     .logo {
       height: 2.3cm;
       display: block;
-      margin-bottom: .8cm;
+      margin-bottom: .3cm;
     }
 
     .address {
@@ -41,8 +41,6 @@
       width: 100%;
       border-collapse: collapse;
       border-bottom: 1px solid #ddd;
-      margin-bottom: 1.5cm;
-      top: 9.5cm;
     }
 
     th,
@@ -122,7 +120,7 @@
         </table>
       </div>
     </section>
-    <address class="address">
+    <address class="address" style="margin-bottom: .5cm;">
       <strong>Remit to:</strong><br>
       {{ invoice.sender().name() }}<br>
       {% if let Some(address) = invoice.sender().address() %}
@@ -153,9 +151,6 @@
         {% if let Some(phone) = invoice.bill_to().phone() %}
         {{ phone }}<br>
         {% endif %}
-        {% if let Some(email) = invoice.bill_to().email() %}
-        {{ email }}<br>
-        {% endif %}
       </address>
       <address class="address">
         <strong>Ship to:</strong><br>
@@ -171,9 +166,6 @@
         {% if let Some(phone) = ship_to.phone() %}
         {{ phone }}<br>
         {% endif %}
-        {% if let Some(email) = ship_to.email() %}
-        {{ email }}<br>
-        {% endif %}
         {% else %}
         {{ invoice.bill_to().name() }}<br>
         {% if let Some(address) = invoice.bill_to().address() %}
@@ -186,52 +178,49 @@
         {% if let Some(phone) = invoice.bill_to().phone() %}
         {{ phone }}<br>
         {% endif %}
-        {% if let Some(email) = invoice.bill_to().email() %}
-        {{ email }}<br>
-        {% endif %}
         {% endif %}
       </address>
     </section>
   </section>
 
-    <table>
-      <thead>
-        <tr>
-          <th style="max-width:10%;">SKU</th>
-          <th style="max-width:15%;">UPC</th>
-          <th style="max-width:35%;">Description</th>
-          <th style="max-width:10%; text-align: right;">Qty</th>
-          <th style="max-width:15%; text-align: right;">Unit Price</th>
-          <th style="max-width:15%; text-align: right;">Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for line in invoice.line_items() %}
-        <tr>
-          <td>{{ line.sku() }}</td>
-          <td>{% if let Some(gtin) = line.gtin() %}{{ gtin }}{% endif %}</td>
-          <td>{{ line.title() }}</td>
-          <td style="text-align: right;">{{ line.quantity() }}</td>
-          <td style="text-align: right;">{{ line.price()|pretty_price(3) }}</td>
-          <td style="text-align: right;">{{ line.total()|pretty_price(2) }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <table class="totals">
+  <table style="margin-bottom: 1.5cm;">
+    <thead>
       <tr>
-        <td><strong>Total:</strong></td>
-        <td style="text-align:right;">{{ invoice.total()|pretty_price(2) }}</td>
+        <th style="max-width:10%;">SKU</th>
+        <th style="max-width:15%;">UPC</th>
+        <th style="max-width:35%;">Description</th>
+        <th style="max-width:10%; text-align: right;">Qty</th>
+        <th style="max-width:15%; text-align: right;">Unit Price</th>
+        <th style="max-width:15%; text-align: right;">Amount</th>
       </tr>
+    </thead>
+    <tbody>
+      {% for line in invoice.line_items() %}
       <tr>
-        <td><strong>Paid:</strong></td>
-        <td style="text-align:right;">{{ invoice.paid()|pretty_price(2) }}</td>
+        <td>{{ line.sku() }}</td>
+        <td>{% if let Some(gtin) = line.gtin() %}{{ gtin }}{% endif %}</td>
+        <td>{{ line.title() }}</td>
+        <td style="text-align: right;">{{ line.quantity() }}</td>
+        <td style="text-align: right;">{{ line.price()|pretty_price(3) }}</td>
+        <td style="text-align: right;">{{ line.total()|pretty_price(2) }}</td>
       </tr>
-      <tr>
-        <td><strong>Due:</strong></td>
-        <td style="text-align:right;">{{ invoice.net_due()|pretty_price(2) }}</td>
-      </tr>
-    </table>
+      {% endfor %}
+    </tbody>
+  </table>
+  <table class="totals">
+    <tr>
+      <td><strong>Total:</strong></td>
+      <td style="text-align:right;">{{ invoice.total()|pretty_price(2) }}</td>
+    </tr>
+    <tr>
+      <td><strong>Paid:</strong></td>
+      <td style="text-align:right;">{{ invoice.paid()|pretty_price(2) }}</td>
+    </tr>
+    <tr>
+      <td><strong>Due:</strong></td>
+      <td style="text-align:right;">{{ invoice.net_due()|pretty_price(2) }}</td>
+    </tr>
+  </table>
   </section>
 </body>
 
