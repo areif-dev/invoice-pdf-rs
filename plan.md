@@ -9,6 +9,8 @@
 - [ ] try killing chromedriver if the port is already being used
 - [x] make sure that deserializing the paid field scales to 2 decimal places
 - [x] lower line item top by 4mm.
-- [ ] add remarks and ability to parse from abc to line items 
+- [ ] add line item remarks and ability to parse from abc to line items 
 - [x] add bill to and ship to parties 
-- [ ] allow non integer line item quantities
+- [x] allow non integer line item quantities
+- [ ] add custom messages next to the totals table
+- [ ] add a spot for a qr code to a payment portal
