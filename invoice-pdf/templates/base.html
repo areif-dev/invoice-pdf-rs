@@ -148,9 +148,6 @@
         {% endif %}
         {{ address.city() }}, {{ address.province_code() }} {{ address.postal_code() }}<br>
         {% endif %}
-        {% if let Some(phone) = invoice.bill_to().phone() %}
-        {{ phone }}<br>
-        {% endif %}
       </address>
       <address class="address">
         <strong>Ship to:</strong><br>
