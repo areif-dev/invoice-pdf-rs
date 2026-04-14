@@ -58,7 +58,6 @@
 
     .totals {
       width: 40%;
-      float: right;
       margin-bottom: 0.5cm;
     }
 
@@ -77,6 +76,21 @@
       display: flex;
       width: 100%;
       justify-content: space-between;
+    }
+
+    .post {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    p {
+      margin-top: 0px;
+    }
+
+    .post-scripts {
+      display: block;
+      width: 46%;
+      font-size: 9px;
     }
   </style>
 </head>
@@ -204,20 +218,26 @@
       {% endfor %}
     </tbody>
   </table>
-  <table class="totals">
-    <tr>
-      <td><strong>Total:</strong></td>
-      <td style="text-align:right;">{{ invoice.total()|pretty_price(2) }}</td>
-    </tr>
-    <tr>
-      <td><strong>Paid:</strong></td>
-      <td style="text-align:right;">{{ invoice.paid()|pretty_price(2) }}</td>
-    </tr>
-    <tr>
-      <td><strong>Due:</strong></td>
-      <td style="text-align:right;">{{ invoice.net_due()|pretty_price(2) }}</td>
-    </tr>
-  </table>
+  <section class="post">
+    <div class="post-scripts">
+      {% for post_script in invoice.post_scripts() %}
+      <p class="post-script">{{ post_script }}</p>
+      {% endfor %}
+    </div>
+    <table class="totals">
+      <tr>
+        <td><strong>Total:</strong></td>
+        <td style="text-align:right;">{{ invoice.total()|pretty_price(2) }}</td>
+      </tr>
+      <tr>
+        <td><strong>Paid:</strong></td>
+        <td style="text-align:right;">{{ invoice.paid()|pretty_price(2) }}</td>
+      </tr>
+      <tr>
+        <td><strong>Due:</strong></td>
+        <td style="text-align:right;">{{ invoice.net_due()|pretty_price(2) }}</td>
+      </tr>
+    </table>
   </section>
 </body>
 

@@ -176,6 +176,8 @@ pub struct Invoice {
     acct_id: Option<String>,
     #[builder(default)]
     purchase_order: Option<String>,
+    #[builder(default = Vec::new())]
+    post_scripts: Vec<String>,
 }
 
 impl LineItemBuilder {
@@ -371,6 +373,11 @@ impl Invoice {
     /// Get the receiver's purchase order, if one exists
     pub fn purchase_order(&self) -> &Option<String> {
         &self.purchase_order
+    }
+
+    /// Any message that should appear after the line items, next to the totals table
+    pub fn post_scripts(&self) -> &Vec<String> {
+        &self.post_scripts
     }
 }
 
