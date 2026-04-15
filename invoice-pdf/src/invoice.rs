@@ -470,6 +470,24 @@ impl InvoiceBuilder {
         }
     }
 
+    /// Add a single post script line at the very end of the list
+    pub fn add_post_script(self, script: &str) -> Self {
+        match self.post_scripts {
+            Some(mut scripts) => {
+                scripts.push(script.to_string());
+                Self {
+                    post_scripts: Some(scripts),
+                    ..self
+                }
+            }
+            None => Self {
+                post_scripts: Some(vec![script.to_string()]),
+                ..self
+            },
+        }
+    }
+
+    /// Set the amount that has already been paid on the invoice
     pub fn paid(self, p: impl Into<BigDecimal>) -> Self {
         let p: BigDecimal = p.into();
         let price = scale2_from_bigdecimal(&p);
