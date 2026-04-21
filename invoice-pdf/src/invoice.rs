@@ -117,7 +117,7 @@ pub struct LineItem {
 }
 
 /// A party involved in the invoice (sender or receiver)
-#[derive(Debug, Builder, Serialize, Deserialize)]
+#[derive(Debug, Builder, Serialize, Deserialize, Clone)]
 #[builder(setter(strip_option, into), pattern = "owned")]
 pub struct Party {
     name: String,
@@ -130,7 +130,7 @@ pub struct Party {
 }
 
 /// A postal address
-#[derive(Debug, Builder, Serialize, Deserialize)]
+#[derive(Debug, Builder, Serialize, Deserialize, Clone)]
 #[builder(setter(strip_option, into), pattern = "owned")]
 pub struct Address {
     line1: String,
@@ -142,7 +142,7 @@ pub struct Address {
 }
 
 /// Invoice top level model
-#[derive(Debug, Builder, Serialize, Deserialize)]
+#[derive(Debug, Builder, Serialize, Deserialize, Clone)]
 #[builder(setter(strip_option, into), pattern = "owned")]
 pub struct Invoice {
     id: String,
