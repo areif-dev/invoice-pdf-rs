@@ -5,10 +5,14 @@
 //! datetimes and decimal prices, and offers a convenience function to
 //! render an Invoice into HTML using the askama template engine.
 
+use std::io::Cursor;
+
 use askama::Template;
 use base64::{Engine, engine::general_purpose};
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, FixedOffset};
+use image::Luma;
+use qrcode::QrCode;
 
 use crate::invoice::Invoice;
 
@@ -76,6 +80,23 @@ impl<'a> InvoiceTemplate<'a> {
         };
 
         Some(format!("data:{};base64,{}", mime_type, encoded))
+    }
+
+    /// Creates a data url containing a base64 encoded qrcode image that will take the user to a
+    /// payment portal if one is configured for the invoice.
+    ///
+    /// If there is no payment portal or if the qrcode image or base64 encoding fails, then return
+    /// `None`
+    pub fn payment_qrcode_data_uri(&self) -> Option<String> {
+        let payment_url = self.invoice.payment_url().as_ref()?.as_bytes();
+        let qrcode = QrCode::new(payment_url).ok()?;
+        let image = qrcode.render::<Luma<u8>>().max_dimensions(100, 100).build();
+        let mut buf = Cursor::new(Vec::new());
+        let dynimg = image::DynamicImage::ImageLuma8(image);
+        dynimg.write_to(&mut buf, image::ImageFormat::Png).ok()?;
+        let image_bytes = buf.into_inner();
+        let encoded = general_purpose::STANDARD.encode(&image_bytes);
+        Some(format!("data:image/png;base64,{}", encoded))
     }
 }
 

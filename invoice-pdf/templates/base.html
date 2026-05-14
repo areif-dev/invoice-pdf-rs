@@ -81,6 +81,7 @@
     .post {
       display: flex;
       justify-content: space-between;
+      margin-bottom: 10px;
     }
 
     p {
@@ -90,7 +91,20 @@
     .post-scripts {
       display: block;
       width: 46%;
-      font-size: 9px;
+      font-size: 11px;
+    }
+
+    .payment-link {
+      width: 50%;
+      display: flex;
+      justify-content: left;
+    }
+
+    .qrcode {
+      display: flex;
+      justify-content: center;
+      width: 50%;
+      float: right;
     }
   </style>
 </head>
@@ -239,6 +253,16 @@
       </tr>
     </table>
   </section>
+  {% if let Some(payment_url) = invoice.payment_url() %}
+  <section class="qrcode">
+    {% if let Some(qrcode_image) = self.payment_qrcode_data_uri() %}
+    <img src="{{ qrcode_image }}" alt="{{ payment_url }}">
+    {% endif %}
+  </section>
+  <section class="payment-link">
+    <p class="post-scripts">To pay online, visit <a href="{{ payment_url }}" target="_blank">{{ payment_url }}</a></p>
+  </section>
+  {% endif %}
 </body>
 
 </html>
