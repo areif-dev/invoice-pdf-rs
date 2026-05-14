@@ -178,6 +178,8 @@ pub struct Invoice {
     purchase_order: Option<String>,
     #[builder(default = Vec::new())]
     post_scripts: Vec<String>,
+    #[builder(default)]
+    payment_url: Option<String>,
 }
 
 impl LineItemBuilder {
@@ -378,6 +380,11 @@ impl Invoice {
     /// Any message that should appear after the line items, next to the totals table
     pub fn post_scripts(&self) -> &Vec<String> {
         &self.post_scripts
+    }
+
+    /// An optional link to a payment portal to capture payment for this invoice
+    pub fn payment_url(&self) -> &Option<String> {
+        &self.payment_url
     }
 }
 
