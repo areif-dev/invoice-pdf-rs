@@ -1209,7 +1209,7 @@ dependencies = [
 
 [[package]]
 name = "invoice-pdf"
-version = "0.2.11"
+version = "0.2.12"
 dependencies = [
  "askama",
  "base64",
