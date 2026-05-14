@@ -386,6 +386,11 @@ impl Invoice {
     pub fn payment_url(&self) -> &Option<String> {
         &self.payment_url
     }
+
+    /// Set the `payment_url` for this [`Invoice`]
+    pub fn with_payment_url(&mut self, new: Option<String>) {
+        self.payment_url = new;
+    }
 }
 
 impl Party {
